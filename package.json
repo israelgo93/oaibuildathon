@@ -1,0 +1,39 @@
+{
+  "name": "openai-build-week-manta",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "admin:bootstrap": "node --env-file=.env.local scripts/bootstrap-admin.mjs",
+    "supabase:types": "npx supabase@2.109.1 gen types typescript --linked --schema public > src/types/database.generated.ts",
+    "optimize:assets": "node scripts/optimize-assets.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.3",
+    "framer-motion": "^12.23.24",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.18.1",
+    "three": "^0.181.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/three": "^0.181.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "sharp": "^0.35.3",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vitest": "^4.1.10"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  }
+}

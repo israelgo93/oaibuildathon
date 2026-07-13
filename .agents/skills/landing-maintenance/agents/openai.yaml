@@ -1,0 +1,4 @@
+interface:
+  display_name: "Landing Build Week"
+  short_description: "Maintain the cinematic landing without visual regressions"
+  default_prompt: "Use $landing-maintenance to update the Build Week landing safely."

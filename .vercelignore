@@ -1,0 +1,7 @@
+/Assets/
+dist/
+node_modules/
+output/
+.playwright-cli/
+.playwright-mcp/
+*.tsbuildinfo
