@@ -1,5 +1,5 @@
-import type { TeamPortalData } from '@/types/api'
-import type { Tables } from '@/types/database'
+import type { TeamPortalData } from '../src/types/api.js'
+import type { Tables } from '../src/types/database.js'
 import { HttpError } from './http.js'
 import { hashTeamToken } from './session.js'
 import { getServerSupabase } from './supabase.js'

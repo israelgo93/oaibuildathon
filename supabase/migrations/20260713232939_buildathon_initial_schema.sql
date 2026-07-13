@@ -371,12 +371,12 @@ declare
   safe_role public.user_role;
 begin
   requested_role := new.raw_app_meta_data ->> 'role';
-  safe_role := case requested_role
-    when 'admin' then 'admin'::public.user_role
-    when 'judge' then 'judge'::public.user_role
-    when 'mentor' then 'mentor'::public.user_role
-    else 'mentor'::public.user_role
-  end;
+
+  if requested_role not in ('admin', 'judge', 'mentor') then
+    return new;
+  end if;
+
+  safe_role := requested_role::public.user_role;
 
   insert into public.profiles (id, role, full_name, email)
   values (
@@ -624,6 +624,9 @@ alter table public.audit_logs enable row level security;
 
 revoke all on all tables in schema public from anon, authenticated;
 revoke all on all sequences in schema public from anon, authenticated;
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
+grant usage, select on all sequences in schema public to service_role;
 revoke all on function public.register_team(uuid, text, text, text, text, text, text, text, uuid, jsonb)
   from public, anon, authenticated;
 revoke all on function public.submit_evaluation(uuid, uuid, uuid, text, boolean, jsonb)

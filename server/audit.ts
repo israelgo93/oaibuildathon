@@ -1,4 +1,4 @@
-import type { Json, TablesInsert } from '@/types/database'
+import type { Json, TablesInsert } from '../src/types/database.js'
 import { getServerSupabase } from './supabase.js'
 
 export async function writeAuditLog(

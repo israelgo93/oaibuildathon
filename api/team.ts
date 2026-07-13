@@ -1,4 +1,4 @@
-import type { Tables, TablesUpdate } from '@/types/database'
+import type { Tables, TablesUpdate } from '../src/types/database.js'
 import { clearTeamSessionCookie, createTeamToken, hashTeamToken, setTeamSessionCookie, TEAM_COOKIE_NAME } from '../server/session.js'
 import { getTeamByToken, getTeamPortalData } from '../server/team-data.js'
 import { HttpError, parseJsonBody, readCookie, requireMethod, setPrivateResponse, withErrorHandling } from '../server/http.js'

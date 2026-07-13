@@ -1,5 +1,5 @@
-import type { MentorDashboardData, MentorTeamData } from '@/types/api'
-import type { Tables } from '@/types/database'
+import type { MentorDashboardData, MentorTeamData } from '../../src/types/api.js'
+import type { Tables } from '../../src/types/database.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
 import { getServerSupabase } from '../../server/supabase.js'

@@ -1,3 +1,13 @@
+.system-loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: oklch(0.105 0.022 250);
+  color: oklch(0.92 0.01 250);
+  font: 700 0.85rem/1.4 var(--font-body);
+  letter-spacing: 0.04em;
+}
+
 .system-page {
   min-height: 100vh;
   color-scheme: light;

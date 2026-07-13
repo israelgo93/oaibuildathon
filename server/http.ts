@@ -1,4 +1,4 @@
-import type { ApiErrorBody } from '@/types/api'
+import type { ApiErrorBody } from '../src/types/api.js'
 import { ZodError } from 'zod'
 import type { ApiHandler, ApiRequest, ApiResponse } from './types.js'
 

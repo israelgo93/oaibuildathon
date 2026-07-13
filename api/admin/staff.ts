@@ -1,4 +1,4 @@
-import type { CreateStaffInput } from '@/types/api'
+import type { CreateStaffInput } from '../../src/types/api.js'
 import { writeAuditLog } from '../../server/audit.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'

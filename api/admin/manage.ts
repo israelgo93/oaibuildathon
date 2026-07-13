@@ -1,5 +1,5 @@
-import type { AdminAction } from '@/types/api'
-import type { Json, Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import type { AdminAction } from '../../src/types/api.js'
+import type { Json, Tables, TablesInsert, TablesUpdate } from '../../src/types/database.js'
 import { writeAuditLog } from '../../server/audit.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'

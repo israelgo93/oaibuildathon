@@ -1,4 +1,4 @@
-import type { Json, Tables } from '@/types/database'
+import type { Json, Tables } from '../src/types/database.js'
 import { requireRole } from '../server/auth.js'
 import { getRequestIp, HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../server/http.js'
 import { createRegistrationCode, createTeamToken, hashTeamToken, setTeamSessionCookie } from '../server/session.js'

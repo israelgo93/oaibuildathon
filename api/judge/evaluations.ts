@@ -1,5 +1,5 @@
-import type { EvaluationInput } from '@/types/api'
-import type { Json, Tables } from '@/types/database'
+import type { EvaluationInput } from '../../src/types/api.js'
+import type { Json, Tables } from '../../src/types/database.js'
 import { writeAuditLog } from '../../server/audit.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'

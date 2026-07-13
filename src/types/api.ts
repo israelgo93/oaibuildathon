@@ -1,4 +1,4 @@
-import type { SubmissionStatus, Tables, UserRole } from '@/types/database'
+import type { SubmissionStatus, Tables, UserRole } from './database.js'
 
 export interface PublicEventConfig {
   event: Pick<

@@ -1,5 +1,5 @@
-import type { PublicEventConfig } from '@/types/api'
-import type { Tables } from '@/types/database'
+import type { PublicEventConfig } from '../src/types/api.js'
+import type { Tables } from '../src/types/database.js'
 import { HttpError, requireMethod, setPublicCache, withErrorHandling } from '../server/http.js'
 import { getServerSupabase } from '../server/supabase.js'
 

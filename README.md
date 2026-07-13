@@ -108,7 +108,7 @@ npx supabase@2.109.1 link --project-ref TU_PROJECT_REF
 npx supabase@2.109.1 db push
 ```
 
-La migracion `supabase/migrations/20260713174601_buildathon_initial_schema.sql` crea el esquema, RLS, funciones transaccionales, retos iniciales y rubrica. No edites esa migracion despues de aplicarla; crea una nueva con:
+La migracion `supabase/migrations/20260713232939_buildathon_initial_schema.sql` crea el esquema, RLS, funciones transaccionales, retos iniciales y rubrica. La migracion `20260713233118_harden_security_and_indexes.sql` restringe la funcion automatica de RLS y agrega indices para las claves foraneas. No edites migraciones aplicadas; crea una nueva con:
 
 ```powershell
 npx supabase@2.109.1 migration new nombre_descriptivo
@@ -136,6 +136,8 @@ Copia `.env.example` y completa solo el archivo local ignorado por Git:
 | `TEAM_SESSION_SECRET` | Servidor | HMAC de sesiones de equipo |
 | `VITE_TURNSTILE_SITE_KEY` | Navegador, opcional | Widget anti-bots |
 | `TURNSTILE_SECRET_KEY` | Servidor, opcional | Verificacion anti-bots |
+
+La integracion oficial de Supabase en Vercel genera `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`. Para esta aplicacion Vite crea en Vercel los alias `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los valores publicos correspondientes, y genera `TEAM_SESSION_SECRET` de forma independiente. Nunca crees un alias `VITE_` para `SUPABASE_SECRET_KEY`.
 
 Genera `TEAM_SESSION_SECRET` en PowerShell sin reutilizar otra clave:
 

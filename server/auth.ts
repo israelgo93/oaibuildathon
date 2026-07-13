@@ -1,5 +1,5 @@
-import type { AuthenticatedProfile } from '@/types/api'
-import type { Tables, UserRole } from '@/types/database'
+import type { AuthenticatedProfile } from '../src/types/api.js'
+import type { Tables, UserRole } from '../src/types/database.js'
 import { HttpError } from './http.js'
 import { getServerSupabase } from './supabase.js'
 import type { ApiRequest } from './types.js'
