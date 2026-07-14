@@ -149,6 +149,16 @@ const models: ModelItem[] = [
   },
 ]
 
+const officialSponsor: CommunityPartner = {
+  name: 'OpenAI',
+  description: 'Sponsor oficial de OpenAI Build Week Manta.',
+  logo: '/assets/community-openai.webp',
+  logoClassName: 'community-logo-openai',
+  logoWidth: 512,
+  logoHeight: 139,
+  links: [],
+}
+
 const organizingCommunity: CommunityPartner = {
   name: 'The Builders',
   description: 'Builders ecuatorianos que convierten ideas de IA en productos y aprendizaje compartido.',
@@ -160,6 +170,16 @@ const organizingCommunity: CommunityPartner = {
     { label: 'Instagram', url: 'https://www.instagram.com/thebuilders.ia' },
     { label: 'WhatsApp', url: BUILDERS_WHATSAPP_URL },
   ],
+}
+
+const venuePartner: CommunityPartner = {
+  name: 'PUCE Manabí',
+  description: 'Sede de OpenAI Build Week Manta.',
+  logo: '/assets/community-puce-manabi.webp',
+  logoClassName: 'community-logo-puce',
+  logoWidth: 800,
+  logoHeight: 192,
+  links: [],
 }
 
 const coorganizingCommunities: CommunityPartner[] = [
@@ -844,6 +864,12 @@ function App() {
               </p>
             </div>
 
+            <article className="community-recognition community-sponsor" aria-labelledby="sponsor-title">
+              <p className="community-role">Sponsor oficial</p>
+              <h3 className="sr-only" id="sponsor-title">{officialSponsor.name}</h3>
+              <CommunityLogo community={officialSponsor} />
+            </article>
+
             <article className="community-primary">
               <CommunityLogo community={organizingCommunity} />
               <div className="community-copy">
@@ -868,6 +894,14 @@ function App() {
                   </li>
                 ))}
               </ul>
+            </div>
+
+            <div className="community-venue" aria-labelledby="venue-title">
+              <p className="community-group-label">Sede</p>
+              <article className="community-recognition community-venue-card">
+                <h3 className="sr-only" id="venue-title">{venuePartner.name}</h3>
+                <CommunityLogo community={venuePartner} />
+              </article>
             </div>
           </div>
         </section>

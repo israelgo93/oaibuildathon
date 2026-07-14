@@ -65,6 +65,13 @@ await Promise.all(
 
 const communityLogoJobs = [
   {
+    source: 'openai-com-wordmark.png',
+    output: 'community-openai.webp',
+    width: 512,
+    trim: false,
+    lossless: true,
+  },
+  {
     source: 'logo-kriuu.png',
     output: 'community-kriuu.webp',
     width: 79,
@@ -82,6 +89,13 @@ const communityLogoJobs = [
     source: 'TheBuildersLogo.png',
     output: 'community-the-builders.webp',
     width: 480,
+    trim: true,
+    lossless: false,
+  },
+  {
+    source: 'PUCE.jpeg',
+    output: 'community-puce-manabi.webp',
+    width: 800,
     trim: true,
     lossless: false,
   },

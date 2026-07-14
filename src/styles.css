@@ -1555,6 +1555,35 @@ p {
   line-height: 1.75;
 }
 
+.community-recognition {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.community-sponsor {
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: clamp(42px, 6vw, 72px);
+  padding-bottom: clamp(34px, 4vw, 52px);
+  border-bottom: 1px solid var(--line-dark);
+}
+
+.community-sponsor .community-role {
+  margin: 0;
+  color: var(--primary);
+}
+
+.community-sponsor .community-logo {
+  width: clamp(210px, 25vw, 330px);
+  height: clamp(58px, 6.8vw, 90px);
+  background: transparent;
+}
+
+.community-logo-openai img {
+  object-fit: contain;
+}
+
 .community-primary {
   display: grid;
   grid-template-columns: minmax(220px, 0.62fr) minmax(280px, 1fr) auto;
@@ -1614,6 +1643,27 @@ p {
 
 .community-coorganizers {
   margin-top: clamp(52px, 7vw, 88px);
+}
+
+.community-venue {
+  margin-top: clamp(52px, 7vw, 88px);
+  padding-top: clamp(42px, 5vw, 64px);
+  border-top: 1px solid var(--line-dark);
+  text-align: center;
+}
+
+.community-venue .community-group-label {
+  margin-bottom: 28px;
+}
+
+.community-venue .community-logo {
+  width: min(100%, 520px);
+  height: clamp(88px, 10vw, 126px);
+  background: white;
+}
+
+.community-logo-puce img {
+  object-fit: contain;
 }
 
 .community-group-label {
@@ -1936,6 +1986,11 @@ p {
     grid-column: 2;
     justify-self: start;
     justify-content: flex-start;
+  }
+
+  .community-venue .community-logo {
+    width: min(100%, 460px);
+    height: 112px;
   }
 }
 
@@ -2333,6 +2388,17 @@ p {
     font-size: 0.96rem;
   }
 
+  .community-sponsor {
+    gap: 14px;
+    margin-bottom: 44px;
+    padding-bottom: 36px;
+  }
+
+  .community-sponsor .community-logo {
+    width: 236px;
+    height: 64px;
+  }
+
   .community-primary {
     grid-template-columns: 1fr;
     gap: 24px;
@@ -2363,6 +2429,16 @@ p {
 
   .community-coorganizers {
     margin-top: 56px;
+  }
+
+  .community-venue {
+    margin-top: 56px;
+    padding-top: 40px;
+  }
+
+  .community-venue .community-logo {
+    width: min(100%, 330px);
+    height: 80px;
   }
 
   .community-group-label {

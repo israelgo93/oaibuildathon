@@ -12,7 +12,7 @@
 - Orbital runtime video: `public/assets/video-orbital.mp4`, requested as `/assets/video-orbital.mp4`.
 - Orbital source copy: `Assets/video-orbital.mp4`.
 - Image sources live under `Assets/`; browser-ready derivatives live under `public/assets/` and are regenerated with `npm run optimize:assets` according to `Assets/Generated/README.md`.
-- Community logo sources are `Assets/TheBuildersLogo.png`, `Assets/logo-kriuu.png`, and `Assets/logo-clubia-uleam2.jpeg`; their optimized WebP derivatives use the `community-*.webp` names in `public/assets/`.
+- Community logo sources are `Assets/openai-com-wordmark.png`, `Assets/TheBuildersLogo.png`, `Assets/logo-kriuu.png`, `Assets/logo-clubia-uleam2.jpeg`, and `Assets/PUCE.jpeg`; their optimized WebP derivatives use the `community-*.webp` names in `public/assets/`.
 
 ## Narrative order
 
@@ -26,8 +26,10 @@
 8. Takeaways.
 9. Conditional showcase for published projects.
 10. Final Luma/community CTA.
-11. Organization and coorganizing communities: The Builders first as principal organizer, followed by Kriuu and Club IA ULEAM.
-12. Footer.
+11. Official sponsor: OpenAI, above the principal organizer.
+12. Organization and coorganizing communities: The Builders first as principal organizer, followed by Kriuu and Club IA ULEAM.
+13. Venue: PUCE Manabí, centered after the coorganizing communities.
+14. Footer.
 
 ## Visual invariants
 
