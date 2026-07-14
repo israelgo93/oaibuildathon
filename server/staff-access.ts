@@ -129,7 +129,9 @@ async function failWithoutRotation(
 }
 
 function resolveEmailConfig(dependencies: StaffAccessDependencies): EmailEnvironment | null {
-  if (Object.hasOwn(dependencies, 'emailConfig')) return dependencies.emailConfig ?? null
+  if (Object.prototype.hasOwnProperty.call(dependencies, 'emailConfig')) {
+    return dependencies.emailConfig ?? null
+  }
   return getEmailEnvironment()
 }
 
@@ -209,7 +211,7 @@ export async function rotateAndNotifyStaffAccess(
     temporaryPassword,
   }, emailConfig)
 
-  if (!delivery.ok) {
+  if (delivery.ok === false) {
     const errorCode = safeErrorCode(delivery.code)
     await repository.updateProfile(target.id, {
       access_email_status: 'failed',
