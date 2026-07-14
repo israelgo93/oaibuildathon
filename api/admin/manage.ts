@@ -121,6 +121,8 @@ export default withErrorHandling(async (request, response) => {
         event_id: input.eventId,
         title: input.title,
         description: input.description,
+        thematic_axes: input.thematicAxes,
+        suggested_topics: input.suggestedTopics,
         requirements: input.requirements,
         max_teams: input.maxTeams,
         submission_deadline_at: input.submissionDeadlineAt,
@@ -136,6 +138,8 @@ export default withErrorHandling(async (request, response) => {
       const values: TablesUpdate<'challenges'> = {
         title: input.title,
         description: input.description,
+        thematic_axes: input.thematicAxes,
+        suggested_topics: input.suggestedTopics,
         requirements: input.requirements,
         active: input.active,
         max_teams: input.maxTeams,

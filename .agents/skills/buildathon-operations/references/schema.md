@@ -51,6 +51,10 @@ Direct table grants are revoked from `anon` and `authenticated`. Vercel Function
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 
+## Local schema change pending production
+
+`20260714205820_add_challenge_themes.sql` adds `challenges.thematic_axes text[]` and `challenges.suggested_topics text[]`. The local application requires 1-8 thematic axes and 1-12 suggested topics when an administrator creates or updates a challenge. The migration seeds the three existing challenges and is applied in Supabase; application deployment verification remains pending.
+
 ## Seeded rubric
 
 The default 100-point construction-focused rubric is: functional product 30, use of OpenAI/Codex 25, technical execution 20, experience/demo 15, and impact/learning 10. Administrators may edit, deactivate, reweight, or add criteria.

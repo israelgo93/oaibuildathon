@@ -92,8 +92,9 @@ const team = teamRaw as Tables<'teams'>
 
 - Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
 - Supabase produccion ya aplica `20260714131805_complete_submission_deadlines_and_email_outbox.sql`, `20260714131931_index_registration_email_outbox_team_event.sql` y `20260714132323_fix_assignment_role_trigger.sql`; la aplicacion conserva el contrato anterior hasta desplegar y verificar el codigo.
+- El arbol local agrega `20260714205820_add_challenge_themes.sql` para ejes tematicos y temas sugeridos; todavia no esta verificada en la aplicacion de produccion.
 - El arbol local ya aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`; no describir la experiencia completa como produccion hasta verificar el despliegue.
-- El codigo local incluye Resend y outbox, pero la integracion Marketplace, el dominio verificado y las variables de produccion siguen siendo configuracion manual pendiente.
+- Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 
 Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.

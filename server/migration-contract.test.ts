@@ -18,6 +18,14 @@ const assignmentTriggerMigrationPath = join(
 )
 const assignmentTriggerMigration = readFileSync(assignmentTriggerMigrationPath, 'utf8')
 
+const challengeThemesMigrationPath = join(
+  process.cwd(),
+  'supabase',
+  'migrations',
+  '20260714205820_add_challenge_themes.sql',
+)
+const challengeThemesMigration = readFileSync(challengeThemesMigrationPath, 'utf8')
+
 describe('contrato SQL de la iteracion', () => {
   it('crea deadline por reto y el outbox dentro de register_team', () => {
     expect(migration).toContain('add column submission_deadline_at timestamptz')
@@ -43,5 +51,14 @@ describe('contrato SQL de la iteracion', () => {
     expect(assignmentTriggerMigration).toContain("to_jsonb(new) ->> 'mentor_id'")
     expect(assignmentTriggerMigration).not.toContain('new.judge_id')
     expect(assignmentTriggerMigration).not.toContain('new.mentor_id')
+  })
+
+  it('agrega ejes y temas sugeridos con limites para cada reto', () => {
+    expect(challengeThemesMigration).toContain('add column thematic_axes text[] not null')
+    expect(challengeThemesMigration).toContain('add column suggested_topics text[] not null')
+    expect(challengeThemesMigration).toContain('challenges_thematic_axes_count')
+    expect(challengeThemesMigration).toContain('challenges_suggested_topics_count')
+    expect(challengeThemesMigration).toContain('Skills reutilizables')
+    expect(challengeThemesMigration).toContain('Pesca y economia costera')
   })
 })

@@ -4,6 +4,14 @@ Ultima verificacion tecnica: 14 de julio de 2026.
 
 Este documento separa el comportamiento disponible del alcance aprobado para una siguiente iteracion. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
 
+## Cambio local implementado y pendiente de produccion
+
+El arbol local agrega `challenges.thematic_axes text[]` y `challenges.suggested_topics text[]` mediante `20260714205820_add_challenge_themes.sql`. La migracion precarga listas para los tres retos y aplica limites de 1 a 8 ejes y de 1 a 12 temas.
+
+El panel administrativo edita las listas con un elemento por linea. La configuracion publica, el portal del equipo y mentoria las exponen mediante contratos tipados; registro y portal las muestran como ejes e ideas de construccion. Este alcance todavia no esta aplicado en Supabase ni desplegado o verificado en Vercel Production.
+
+La verificacion local termino con TypeScript estricto, 37 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos correctos. La comparacion remota se realiza contra el proyecto `buildathon` antes de aplicar la migracion.
+
 ## Implementacion desplegada y verificada
 
 El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verificacion del 14 de julio de 2026 confirma:
@@ -32,7 +40,7 @@ Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FR
 | Landing | Implementado | Landing cinematografica, CTA `Registra tu equipo` y vitrina condicional | La landing no administra equipos ni entregas; esas funciones viven en rutas separadas |
 | Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie, codigo de recuperacion y confirmacion por correo | Un fallo de correo no invalida ni duplica el registro |
 | Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
-| Retos | Implementado | Titulo, descripcion, requisitos, estado, cupo opcional y deadline propio | La UI administra retos del evento existente mas reciente |
+| Retos | Implementado; ampliacion local pendiente | Produccion: titulo, descripcion, requisitos, estado, cupo opcional y deadline propio. Local: ejes tematicos y temas sugeridos editables | La UI administra retos del evento existente mas reciente; la ampliacion local aun no esta desplegada |
 | Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, asignaciones, entregas y ranking privado | No crea eventos; staff se crea/lista pero no se elimina, desactiva ni restablece desde la UI |
 | Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
@@ -96,6 +104,10 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 6. `20260714132323_fix_assignment_role_trigger.sql`: corrige el trigger de asignaciones compartido y permite validar jurados y mentores contra su columna correspondiente.
 
 No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1 migration new nombre_descriptivo` y se reconcilia con el historial remoto.
+
+### Migracion local pendiente
+
+- `20260714205820_add_challenge_themes.sql`: agrega ejes tematicos y temas sugeridos, precarga contenido para los tres retos y limita la cardinalidad de ambas listas. Esta aplicada en Supabase y pendiente de verificar con la aplicacion desplegada.
 
 ## Seguridad vigente
 

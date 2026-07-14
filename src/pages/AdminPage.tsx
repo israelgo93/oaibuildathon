@@ -30,6 +30,13 @@ function formText(form: FormData, name: string): string {
   return String(form.get(name) ?? '').trim()
 }
 
+function formLines(form: FormData, name: string): string[] {
+  return formText(form, name)
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+}
+
 function localDateTime(value: string): string {
   return ecuadorDateTimeInputValue(value)
 }
@@ -140,6 +147,8 @@ function ChallengeEditor({ challenge, globalDeadline, mutate }: { challenge: Tab
       challengeId: challenge.id,
       title: formText(form, 'title'),
       description: formText(form, 'description'),
+      thematicAxes: formLines(form, 'thematicAxes'),
+      suggestedTopics: formLines(form, 'suggestedTopics'),
       requirements: formText(form, 'requirements'),
       active: form.get('active') === 'on',
       maxTeams: capacity ? Number(capacity) : null,
@@ -151,7 +160,9 @@ function ChallengeEditor({ challenge, globalDeadline, mutate }: { challenge: Tab
     <form className="system-card system-form inline-editor" onSubmit={(event) => void submit(event)}>
       <div className="editor-heading"><strong>Reto</strong><label className="inline-toggle"><input type="checkbox" name="active" defaultChecked={challenge.active} /> Activo</label></div>
       <label>Titulo<input name="title" required defaultValue={challenge.title} /></label>
-      <label>Descripcion<textarea name="description" required rows={3} defaultValue={challenge.description} /></label>
+      <label>Enfoque general<textarea name="description" required rows={3} defaultValue={challenge.description} /></label>
+      <label>Ejes tematicos <small>Uno por linea, maximo 8.</small><textarea name="thematicAxes" required rows={6} defaultValue={challenge.thematic_axes.join('\n')} /></label>
+      <label>Temas e ideas para construir <small>Una idea por linea, maximo 12.</small><textarea name="suggestedTopics" required rows={10} defaultValue={challenge.suggested_topics.join('\n')} /></label>
       <label>Requisitos<textarea name="requirements" rows={2} defaultValue={challenge.requirements} /></label>
       <label>Cupo de equipos<input name="maxTeams" type="number" min="1" placeholder="Sin limite" defaultValue={challenge.max_teams ?? ''} /></label>
       <label>Deadline en America/Guayaquil (UTC-5)<input name="submissionDeadlineAt" type="datetime-local" required defaultValue={localDateTime(challenge.submission_deadline_at)} /></label>
@@ -196,7 +207,7 @@ function ChallengesSection({ dashboard, mutate }: AdminSectionProps) {
     const formElement = submitEvent.currentTarget
     const form = new FormData(formElement)
     const capacity = formText(form, 'maxTeams')
-    await mutate({ action: 'create_challenge', eventId: event.id, title: formText(form, 'title'), description: formText(form, 'description'), requirements: formText(form, 'requirements'), maxTeams: capacity ? Number(capacity) : null, submissionDeadlineAt: ecuadorDateTimeToIso(formText(form, 'submissionDeadlineAt')) })
+    await mutate({ action: 'create_challenge', eventId: event.id, title: formText(form, 'title'), description: formText(form, 'description'), thematicAxes: formLines(form, 'thematicAxes'), suggestedTopics: formLines(form, 'suggestedTopics'), requirements: formText(form, 'requirements'), maxTeams: capacity ? Number(capacity) : null, submissionDeadlineAt: ecuadorDateTimeToIso(formText(form, 'submissionDeadlineAt')) })
     formElement.reset()
   }
 
@@ -213,7 +224,17 @@ function ChallengesSection({ dashboard, mutate }: AdminSectionProps) {
   return (
     <div className="admin-stack">
       <section><div className="admin-section-heading"><div><p className="system-eyebrow">Construccion</p><h2>Retos</h2></div><span>{dashboard.challenges.filter((challenge) => challenge.active).length} activos</span></div><div className="editor-grid">{dashboard.challenges.map((challenge) => <ChallengeEditor key={challenge.id} challenge={challenge} globalDeadline={event.submissions_close_at} mutate={mutate} />)}</div></section>
-      <form className="system-card system-form create-row" onSubmit={(event) => void createChallenge(event)}><h3>Crear reto</h3><label>Titulo<input name="title" required /></label><label>Descripcion<textarea name="description" required rows={2} /></label><label>Requisitos<textarea name="requirements" rows={2} /></label><label>Cupo<input name="maxTeams" type="number" min="1" /></label><label>Deadline en America/Guayaquil (UTC-5)<input name="submissionDeadlineAt" type="datetime-local" required defaultValue={optionalLocalDateTime(event.submissions_close_at ?? event.ends_at)} /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
+      <form className="system-card system-form create-row challenge-create-form" onSubmit={(event) => void createChallenge(event)}>
+        <h3>Crear reto</h3>
+        <label>Titulo<input name="title" required /></label>
+        <label>Enfoque general<textarea name="description" required rows={2} /></label>
+        <label>Ejes tematicos <small>Uno por linea, maximo 8.</small><textarea name="thematicAxes" required rows={5} /></label>
+        <label>Temas e ideas para construir <small>Una idea por linea, maximo 12.</small><textarea name="suggestedTopics" required rows={8} /></label>
+        <label>Requisitos<textarea name="requirements" rows={2} /></label>
+        <label>Cupo<input name="maxTeams" type="number" min="1" /></label>
+        <label>Deadline en America/Guayaquil (UTC-5)<input name="submissionDeadlineAt" type="datetime-local" required defaultValue={optionalLocalDateTime(event.submissions_close_at ?? event.ends_at)} /></label>
+        <button className="system-button system-button-primary" type="submit">Agregar</button>
+      </form>
       <section><div className="admin-section-heading"><div><p className="system-eyebrow">Evaluacion dinamica</p><h2>Rubrica del jurado</h2></div><span>Maximo ponderado {activeMaxScore}</span></div><div className="editor-grid">{dashboard.criteria.map((criterion) => <CriterionEditor key={criterion.id} criterion={criterion} mutate={mutate} />)}</div></section>
       <form className="system-card system-form create-row" onSubmit={(event) => void createCriterion(event)}><h3>Crear criterio</h3><label>Nombre<input name="name" required /></label><label>Descripcion<textarea name="description" required rows={2} /></label><label>Maximo<input name="maxScore" type="number" min="1" max="100" defaultValue="10" /></label><label>Peso<input name="weight" type="number" min="0.1" max="100" step="0.1" defaultValue="1" /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
     </div>

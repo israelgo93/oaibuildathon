@@ -55,3 +55,7 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 - registration confirmation through Resend using a server-side outbox and idempotent delivery.
 
 The database migrations, generated types, Vercel application and Resend variables agree with production. A real registration verified provider acceptance at the first outbox attempt; provider failures remain isolated from registration.
+
+## Local challenge guidance pending production
+
+The local tree extends challenge administration with thematic axes and suggested project topics. Registration shows both lists before challenge selection; the team portal keeps them visible during construction; mentors receive the same context. `20260714205820_add_challenge_themes.sql` is applied in Supabase; application deployment verification remains pending.

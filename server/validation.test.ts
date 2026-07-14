@@ -173,4 +173,23 @@ describe('adminActionSchema', () => {
     })
     expect(result.success).toBe(false)
   })
+
+  it('exige ejes y temas estructurados al crear un reto', () => {
+    const challenge = {
+      action: 'create_challenge',
+      eventId: validRegistration.eventId,
+      title: 'Reto nuevo',
+      description: 'Construye una solucion funcional.',
+      thematicAxes: ['Educacion', 'Ciencia'],
+      suggestedTopics: ['Tutor adaptativo', 'Explorador de literatura cientifica'],
+      requirements: 'Presenta una demo.',
+      maxTeams: null,
+      submissionDeadlineAt: '2026-07-15T20:45:00.000Z',
+    }
+
+    expect(adminActionSchema.safeParse(challenge).success).toBe(true)
+    expect(adminActionSchema.safeParse({ ...challenge, thematicAxes: [] }).success).toBe(false)
+    expect(adminActionSchema.safeParse({ ...challenge, suggestedTopics: [] }).success).toBe(false)
+    expect(adminActionSchema.safeParse({ ...challenge, thematicAxes: Array.from({ length: 9 }, (_, index) => `Eje ${index}`) }).success).toBe(false)
+  })
 })

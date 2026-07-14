@@ -78,6 +78,8 @@ export async function getTeamPortalData(team: Tables<'teams'>): Promise<TeamPort
       id: challenge.id,
       title: challenge.title,
       description: challenge.description,
+      thematic_axes: challenge.thematic_axes,
+      suggested_topics: challenge.suggested_topics,
       requirements: challenge.requirements,
       submission_deadline_at: challenge.submission_deadline_at,
     },

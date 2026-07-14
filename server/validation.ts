@@ -13,6 +13,11 @@ const optionalUrl = z.union([
 const draftText = (label: string, maxLength: number) =>
   z.string().trim().max(maxLength, `${label} es demasiado largo`)
 
+const challengeList = (label: string, maxItems: number, maxLength: number) =>
+  z.array(requiredText(label, maxLength))
+    .min(1, `Agrega al menos un ${label.toLowerCase()}`)
+    .max(maxItems, `Puedes agregar hasta ${maxItems} ${label.toLowerCase()}`)
+
 const technologyStackSchema = z.array(z.string())
   .transform(normalizeTechnologyStack)
   .pipe(z.array(z.string().min(1).max(60, 'Cada tecnologia admite hasta 60 caracteres')).max(20, 'Puedes seleccionar hasta 20 tecnologias'))
@@ -130,8 +135,8 @@ export const adminActionSchema = z.discriminatedUnion('action', [
       max_team_size: z.number().int().min(1).max(3).optional(),
     }).strict(),
   }),
-  z.object({ action: z.literal('create_challenge'), eventId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
-  z.object({ action: z.literal('update_challenge'), challengeId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), active: z.boolean(), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
+  z.object({ action: z.literal('create_challenge'), eventId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('El enfoque', 1500), thematicAxes: challengeList('Eje tematico', 8, 80), suggestedTopics: challengeList('Tema sugerido', 12, 240), requirements: z.string().trim().max(2000), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
+  z.object({ action: z.literal('update_challenge'), challengeId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('El enfoque', 1500), thematicAxes: challengeList('Eje tematico', 8, 80), suggestedTopics: challengeList('Tema sugerido', 12, 240), requirements: z.string().trim().max(2000), active: z.boolean(), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
   z.object({ action: z.literal('create_criterion'), eventId: z.string().uuid(), name: requiredText('El criterio', 120), description: requiredText('La descripcion', 1500), maxScore: z.number().positive().max(100), weight: z.number().positive().max(100) }),
   z.object({ action: z.literal('update_criterion'), criterionId: z.string().uuid(), name: requiredText('El criterio', 120), description: requiredText('La descripcion', 1500), maxScore: z.number().positive().max(100), weight: z.number().positive().max(100), active: z.boolean() }),
   z.object({ action: z.literal('set_team_status'), teamId: z.string().uuid(), status: z.enum(['registered', 'active', 'withdrawn', 'disqualified']) }),

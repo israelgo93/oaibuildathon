@@ -44,6 +44,8 @@ export type ChallengeRow = {
   event_id: string
   title: string
   description: string
+  thematic_axes: string[]
+  suggested_topics: string[]
   requirements: string
   active: boolean
   max_teams: number | null
@@ -203,7 +205,7 @@ export interface Database {
     Tables: {
       events: TableDefinition<EventRow, InsertRow<EventRow, 'slug' | 'name' | 'starts_at' | 'ends_at'>>
       profiles: TableDefinition<ProfileRow, InsertRow<ProfileRow, 'id' | 'role' | 'full_name' | 'email'>>
-      challenges: TableDefinition<ChallengeRow, InsertRow<ChallengeRow, 'event_id' | 'title' | 'description' | 'submission_deadline_at'>>
+      challenges: TableDefinition<ChallengeRow, InsertRow<ChallengeRow, 'event_id' | 'title' | 'description' | 'thematic_axes' | 'suggested_topics' | 'submission_deadline_at'>>
       teams: TableDefinition<TeamRow, InsertRow<TeamRow, 'event_id' | 'name' | 'contact_email' | 'registration_code' | 'management_token_hash'>>
       team_members: TableDefinition<TeamMemberRow, InsertRow<TeamMemberRow, 'team_id' | 'event_id' | 'position' | 'full_name' | 'email'>>
       team_challenges: TableDefinition<TeamChallengeRow, InsertRow<TeamChallengeRow, 'team_id' | 'challenge_id' | 'event_id'>>

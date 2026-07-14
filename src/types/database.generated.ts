@@ -62,7 +62,9 @@ export type Database = {
           max_teams: number | null
           requirements: string
           sort_order: number
+          suggested_topics: string[]
           submission_deadline_at: string
+          thematic_axes: string[]
           title: string
           updated_at: string
         }
@@ -75,7 +77,9 @@ export type Database = {
           max_teams?: number | null
           requirements?: string
           sort_order?: number
+          suggested_topics?: string[]
           submission_deadline_at: string
+          thematic_axes?: string[]
           title: string
           updated_at?: string
         }
@@ -88,7 +92,9 @@ export type Database = {
           max_teams?: number | null
           requirements?: string
           sort_order?: number
+          suggested_topics?: string[]
           submission_deadline_at?: string
+          thematic_axes?: string[]
           title?: string
           updated_at?: string
         }

@@ -17,7 +17,7 @@ export interface PublicEventConfig {
   >
   challenges: Pick<
     Tables<'challenges'>,
-    'id' | 'title' | 'description' | 'requirements' | 'max_teams' | 'sort_order' | 'submission_deadline_at'
+    'id' | 'title' | 'description' | 'thematic_axes' | 'suggested_topics' | 'requirements' | 'max_teams' | 'sort_order' | 'submission_deadline_at'
   >[]
 }
 
@@ -64,7 +64,7 @@ export interface TeamPortalData {
     Tables<'team_members'>,
     'id' | 'position' | 'full_name' | 'email' | 'phone' | 'city' | 'member_role' | 'is_primary_contact'
   >[]
-  challenge: Pick<Tables<'challenges'>, 'id' | 'title' | 'description' | 'requirements' | 'submission_deadline_at'>
+  challenge: Pick<Tables<'challenges'>, 'id' | 'title' | 'description' | 'thematic_axes' | 'suggested_topics' | 'requirements' | 'submission_deadline_at'>
   submissionDeadlineAt: string
   submission: Pick<
     Tables<'project_submissions'>,
@@ -169,7 +169,7 @@ export interface MentorTeamData {
   notes: string
   team: Tables<'teams'>
   members: Tables<'team_members'>[]
-  challenge: Pick<Tables<'challenges'>, 'id' | 'title' | 'description' | 'requirements'> | null
+  challenge: Pick<Tables<'challenges'>, 'id' | 'title' | 'description' | 'thematic_axes' | 'suggested_topics' | 'requirements'> | null
   submission: Tables<'project_submissions'> | null
 }
 
@@ -181,8 +181,8 @@ export interface MentorDashboardData {
 
 export type AdminAction =
   | { action: 'update_event'; eventId: string; values: Partial<Pick<Tables<'events'>, 'name' | 'tagline' | 'location' | 'starts_at' | 'ends_at' | 'registration_opens_at' | 'registration_closes_at' | 'submissions_close_at' | 'scoring_opens_at' | 'scoring_closes_at' | 'registration_open' | 'submissions_open' | 'scoring_open' | 'results_public' | 'showcase_enabled' | 'min_team_size' | 'max_team_size'>> }
-  | { action: 'create_challenge'; eventId: string; title: string; description: string; requirements: string; maxTeams: number | null; submissionDeadlineAt: string }
-  | { action: 'update_challenge'; challengeId: string; title: string; description: string; requirements: string; active: boolean; maxTeams: number | null; submissionDeadlineAt: string }
+  | { action: 'create_challenge'; eventId: string; title: string; description: string; thematicAxes: string[]; suggestedTopics: string[]; requirements: string; maxTeams: number | null; submissionDeadlineAt: string }
+  | { action: 'update_challenge'; challengeId: string; title: string; description: string; thematicAxes: string[]; suggestedTopics: string[]; requirements: string; active: boolean; maxTeams: number | null; submissionDeadlineAt: string }
   | { action: 'create_criterion'; eventId: string; name: string; description: string; maxScore: number; weight: number }
   | { action: 'update_criterion'; criterionId: string; name: string; description: string; maxScore: number; weight: number; active: boolean }
   | { action: 'set_team_status'; teamId: string; status: Tables<'teams'>['status'] }

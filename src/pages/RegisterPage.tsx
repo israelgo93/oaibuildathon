@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { apiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { ChallengeThemes } from '@/components/system/ChallengeThemes'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
 import { effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
 import type { PublicEventConfig, RegistrationInput, RegistrationMemberInput, RegistrationResult } from '@/types/api'
@@ -187,8 +188,9 @@ export function RegisterPage() {
                     <input required type="radio" name="challenge" value={challenge.id} checked={challengeId === challenge.id} onChange={() => setChallengeId(challenge.id)} />
                     <strong>{challenge.title}</strong>
                     <span>{challenge.description}</span>
-                    {challenge.requirements ? <small>{challenge.requirements}</small> : null}
-                    <small>Entrega hasta {formatEcuadorDateTime(effectiveSubmissionDeadline(challenge.submission_deadline_at, config.event.submissions_close_at))}</small>
+                    <ChallengeThemes thematicAxes={challenge.thematic_axes} suggestedTopics={challenge.suggested_topics} compact />
+                    {challenge.requirements ? <small><strong>Requisito:</strong> {challenge.requirements}</small> : null}
+                    <small><strong>Entrega:</strong> {formatEcuadorDateTime(effectiveSubmissionDeadline(challenge.submission_deadline_at, config.event.submissions_close_at))}</small>
                   </label>
                 ))}
               </div>

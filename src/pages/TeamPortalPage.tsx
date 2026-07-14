@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ApiClientError, apiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { ChallengeThemes } from '@/components/system/ChallengeThemes'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
 import { formatEcuadorDateTime, isDeadlineReached } from '@/lib/dates'
 import { finalSubmissionError } from '@/lib/submission'
@@ -191,6 +192,7 @@ export function TeamPortalPage() {
             <p className="system-eyebrow">Reto elegido</p>
             <h2>{portal.challenge.title}</h2>
             <p>{portal.challenge.description}</p>
+            <ChallengeThemes thematicAxes={portal.challenge.thematic_axes} suggestedTopics={portal.challenge.suggested_topics} />
             {portal.challenge.requirements ? <small>{portal.challenge.requirements}</small> : null}
             <p><strong>Deadline:</strong> {formatEcuadorDateTime(portal.submissionDeadlineAt)}</p>
           </section>

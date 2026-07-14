@@ -73,6 +73,8 @@ export default withErrorHandling(async (request, response) => {
           id: challenge.id,
           title: challenge.title,
           description: challenge.description,
+          thematic_axes: challenge.thematic_axes,
+          suggested_topics: challenge.suggested_topics,
           requirements: challenge.requirements,
         } : null,
         submission: submissionByTeam.get(team.id) ?? null,

@@ -76,6 +76,8 @@ const job: RegistrationEmailJob = {
     event_id: '10000000-0000-4000-8000-000000000001',
     title: 'Reto de agentes',
     description: '',
+    thematic_axes: ['Operaciones y productividad'],
+    suggested_topics: ['Automatizacion de compras'],
     requirements: '',
     active: true,
     max_teams: null,

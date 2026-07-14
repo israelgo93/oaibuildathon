@@ -8,6 +8,19 @@ OpenAI Build Week Manta combina una landing publica con una plataforma operativa
 
 La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). El alcance de [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion: indicadores de obligatorio, borrador flexible, entrega final estricta, tecnologias seleccionables, deadline por reto, acceso correcto del jurado y correo transaccional mediante Resend. Las migraciones, los tipos remotos, la aplicacion desplegada y las variables de correo estan reconciliados.
 
+El arbol local agrega ejes tematicos y ejemplos concretos a los retos. Esta capacidad permanece pendiente de migracion y despliegue en produccion.
+
+## Diseno de retos
+
+Cada reto conserva un enfoque breve y requisitos verificables, pero orienta la ideacion mediante dos listas administrables:
+
+- **Ejes tematicos:** dominios amplios que permiten participar a estudiantes, profesionales, emprendedores, empresas y personas no tecnicas.
+- **Temas sugeridos:** problemas o tipos de herramienta concretos que inspiran sin convertir el reto en una solucion unica.
+
+Para herramientas de builders, la seleccion reconoce las superficies actuales de Codex: [skills como flujos reutilizables](https://learn.chatgpt.com/docs/build-skills.md) y [plugins como paquetes distribuibles de skills, conectores, configuracion MCP, hooks y recursos](https://learn.chatgpt.com/docs/build-plugins.md).
+
+Para impacto local, los ejes priorizan economia costera, agro y agua, turismo, educacion e inclusion digital, servicios, empleo, resiliencia y ambiente. La curacion se apoya en el [PDOT Manta 2024-2035](https://manta.gob.ec/wp-content/uploads/2024/11/01-PDOT-Diagnostico-2024-2035.pdf), los [indicadores TIC del INEC](https://www.ecuadorencifras.gob.ec/tecnologias-de-la-informacion-y-comunicacion-tic/), las [estadisticas agropecuarias de Manabi](https://sipa.agricultura.gob.ec/index.php/situacionales-provinciales/estadisticas-manabi) y el [escenario nacional de respuesta ante sismo y tsunami](https://www.gestionderiesgos.gob.ec/wp-content/uploads/downloads/2018/05/Plan-de-Respuesta-Ecuador.pdf).
+
 ## Usuarios
 
 - Builders: desarrolladores, estudiantes, disenadores, fundadores, emprendedores y creadores de Ecuador.
