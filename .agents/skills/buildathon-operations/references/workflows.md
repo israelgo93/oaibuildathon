@@ -7,7 +7,7 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 1. Open `/registro` from the landing.
 2. One person registers the whole team, with 1-3 members, and selects an active challenge.
 3. The server creates the team, members, challenge link, and draft submission atomically.
-4. The browser receives an HTTP-only session and displays the eight-character recovery code. The transaction also creates an idempotent email outbox entry; delivery waits safely if Resend is not fully configured.
+4. The browser receives an HTTP-only session and displays the eight-character recovery code. The transaction also creates an idempotent email outbox entry and attempts delivery through Resend without making registration depend on the provider.
 5. `/equipo` recovers access with the contact email and code, then shows the challenge, members, and project form.
 6. The team can save an incomplete draft. Final submission requires all project text, at least one technology, demo, and repository.
 7. The team API enforces the earlier of the global close and the selected challenge deadline.
@@ -54,4 +54,4 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 - jury access and scoring restricted to `submitted` or `published` projects, with submission timing visible;
 - registration confirmation through Resend using a server-side outbox and idempotent delivery.
 
-The database migrations, generated types and Vercel application agree with production. Transactional delivery additionally requires a verified sender domain plus `RESEND_FROM` and `RESEND_REPLY_TO`; until then the outbox remains pending without affecting registration.
+The database migrations, generated types, Vercel application and Resend variables agree with production. A real registration verified provider acceptance at the first outbox attempt; provider failures remain isolated from registration.

@@ -15,10 +15,10 @@ Este alcance ya se implemento y desplego. El texto original se conserva debajo c
 - [x] Aplicar las migraciones remotas y reconciliar tipos generados contra el esquema desplegado.
 - [x] Instalar/autorizar Resend en Vercel y exponer `RESEND_API_KEY` solo al servidor.
 - [x] Configurar `APP_BASE_URL=https://oaibuildathon.vercel.app` en Production.
-- [ ] Verificar el dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO` con direcciones reales.
+- [x] Verificar el dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO` con direcciones reales.
 - [x] Desplegar y verificar registro, sesion de equipo, borrador incompleto y envio final en produccion.
 
-La prueba E2E real devolvio `201`, establecio la sesion HTTP-only, guardo un borrador parcial y termino con una entrega `submitted`. Los equipos temporales se eliminaron despues de la verificacion. Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue y se conservan solo como contexto historico.
+La prueba E2E real devolvio `201`, establecio la sesion HTTP-only, guardo un borrador parcial y termino con una entrega `submitted`. Una segunda prueba de registro confirmo el outbox `sent` al primer intento mediante Resend. Los equipos temporales se eliminaron despues de la verificacion. Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue y se conservan solo como contexto historico.
 
 El siguiente texto fue la solicitud autocontenida de la iteracion y describe funcionalidades que estaban **pendientes** al redactarse. Usalo ahora como contrato de verificacion, no como fuente del estado desplegado.
 

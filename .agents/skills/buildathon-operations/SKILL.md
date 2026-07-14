@@ -25,7 +25,7 @@ Work on the platform as a construction event system: the central outcome is a fu
 - Teams use one global registration, an HTTP-only session, and a recovery code plus contact email. Participants do not need individual Auth accounts.
 - Admin, judge, and mentor users authenticate with Supabase Auth and have a `profiles` row.
 - Operational reads currently select the most recently created event. The admin UI edits that event and does not create a new one.
-- Transactional email is deployed with Resend and `registration_email_outbox`. The Marketplace integration, API key and production base URL are configured; delivery remains unavailable until a sender domain is verified and `RESEND_FROM` plus `RESEND_REPLY_TO` are defined.
+- Transactional email is deployed and verified with Resend and `registration_email_outbox`. The Marketplace integration, API key, verified sender, reply-to and production base URL are configured in Production.
 
 ## Implementation workflow
 

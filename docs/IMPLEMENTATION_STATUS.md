@@ -15,7 +15,7 @@ El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verif
 - una prueba real de navegador completo registro, sesion automatica, guardado de borrador incompleto y envio final `submitted`; los datos temporales se eliminaron al terminar;
 - TypeScript estricto, 34 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos terminaron correctamente.
 
-Resend esta autorizado mediante Vercel Marketplace y `RESEND_API_KEY` esta disponible en Production. `APP_BASE_URL` tambien esta configurada. El outbox funciona en modo degradado seguro, pero el envio real permanece pendiente hasta verificar un dominio remitente y definir `RESEND_FROM` y `RESEND_REPLY_TO`. Docker Desktop no estuvo disponible para `supabase db reset`; el esquema, las transacciones, el historial y los asesores se verificaron directamente contra el proyecto remoto.
+Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO` y `APP_BASE_URL` estan configuradas en Production. Un registro real devolvio `201` y su outbox termino en `sent` al primer intento, con ID de proveedor y sin error; el equipo temporal se elimino despues. Docker Desktop no estuvo disponible para `supabase db reset`; el esquema, las transacciones, el historial y los asesores se verificaron directamente contra el proyecto remoto.
 
 ## Entornos conectados
 
@@ -30,7 +30,7 @@ Resend esta autorizado mediante Vercel Marketplace y `RESEND_API_KEY` esta dispo
 | Area | Estado | Disponible ahora | Limitaciones conocidas |
 | --- | --- | --- | --- |
 | Landing | Implementado | Landing cinematografica, CTA `Registra tu equipo` y vitrina condicional | La landing no administra equipos ni entregas; esas funciones viven en rutas separadas |
-| Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie y codigo de recuperacion | El correo queda en outbox hasta configurar remitente y reply-to verificados |
+| Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie, codigo de recuperacion y confirmacion por correo | Un fallo de correo no invalida ni duplica el registro |
 | Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
 | Retos | Implementado | Titulo, descripcion, requisitos, estado, cupo opcional y deadline propio | La UI administra retos del evento existente mas reciente |
 | Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, asignaciones, entregas y ranking privado | No crea eventos; staff se crea/lista pero no se elimina, desactiva ni restablece desde la UI |
@@ -38,7 +38,7 @@ Resend esta autorizado mediante Vercel Marketplace y `RESEND_API_KEY` esta dispo
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
 | Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Usa el evento mas reciente con vitrina habilitada |
 | Resultados publicos | No implementado | Existe el campo `results_public` y ranking privado en administracion | No hay endpoint ni vista publica de resultados |
-| Correo transaccional | Implementado en modo degradado | SDK Resend, HTML/texto, outbox transaccional, idempotencia, reintentos y accion administrativa | Falta verificar el dominio y configurar `RESEND_FROM` y `RESEND_REPLY_TO` en Production |
+| Correo transaccional | Implementado | SDK Resend, remitente verificado, HTML/texto, outbox transaccional, idempotencia, reintentos y accion administrativa | No existe webhook de entrega, rebote o queja; `sent` representa aceptacion del proveedor |
 
 ## Contrato actual de registro
 
@@ -110,4 +110,4 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 
 El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion.
 
-La unica configuracion externa pendiente de esta iteracion es habilitar la entrega real de correo con un dominio verificado, `RESEND_FROM` y `RESEND_REPLY_TO`. Mientras tanto, el registro permanece disponible y el outbox conserva los envios pendientes sin revertir ni duplicar equipos.
+No queda configuracion externa pendiente en esta iteracion. El registro y el correo transaccional estan activos; el outbox conserva la independencia del registro frente a fallos y permite reintentos administrativos.
