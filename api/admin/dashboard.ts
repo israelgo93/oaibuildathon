@@ -21,6 +21,7 @@ export default withErrorHandling(async (request, response) => {
     mentorAssignmentsResult,
     evaluationsResult,
     scoresResult,
+    registrationEmailOutboxResult,
   ] = await Promise.all([
     supabase.from('events').select('*').order('starts_at', { ascending: false }),
     supabase.from('challenges').select('*').order('sort_order'),
@@ -34,12 +35,13 @@ export default withErrorHandling(async (request, response) => {
     supabase.from('mentor_assignments').select('*'),
     supabase.from('evaluations').select('*'),
     supabase.from('evaluation_scores').select('*'),
+    supabase.from('registration_email_outbox').select('*').order('created_at', { ascending: false }),
   ])
 
   const failedResult = [
     eventsResult, challengesResult, teamsResult, membersResult, teamChallengesResult,
     submissionsResult, criteriaResult, profilesResult, judgeAssignmentsResult,
-    mentorAssignmentsResult, evaluationsResult, scoresResult,
+    mentorAssignmentsResult, evaluationsResult, scoresResult, registrationEmailOutboxResult,
   ].find((result) => result.error)
 
   if (failedResult?.error) throw new HttpError(500, 'No fue posible cargar el panel administrativo')
@@ -56,6 +58,7 @@ export default withErrorHandling(async (request, response) => {
   const mentorAssignments: Tables<'mentor_assignments'>[] = mentorAssignmentsResult.data ?? []
   const evaluations: Tables<'evaluations'>[] = evaluationsResult.data ?? []
   const scores: Tables<'evaluation_scores'>[] = scoresResult.data ?? []
+  const registrationEmailOutbox: Tables<'registration_email_outbox'>[] = registrationEmailOutboxResult.data ?? []
   const dashboard: AdminDashboardData = {
     profile: publicProfile,
     events,
@@ -70,6 +73,7 @@ export default withErrorHandling(async (request, response) => {
     mentorAssignments,
     evaluations,
     scores,
+    registrationEmailOutbox,
   }
 
   setPrivateResponse(response)

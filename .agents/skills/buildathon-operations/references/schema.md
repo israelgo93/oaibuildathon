@@ -1,6 +1,6 @@
 # Domain and schema
 
-This reference describes the deployed schema verified on 2026-07-14. Approved but unimplemented changes live in `docs/NEXT_ITERATION_PROMPT.md`.
+This reference describes the deployed schema verified on 2026-07-14 and the migration now prepared locally. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is actually deployed.
 
 ## Core entities
 
@@ -45,6 +45,9 @@ Direct table grants are revoked from `anon` and `authenticated`. Vercel Function
 1. `20260713232939_buildathon_initial_schema.sql`: entities, functions, RLS, seed challenges, and rubric.
 2. `20260713233118_harden_security_and_indexes.sql`: function hardening and foreign-key indexes.
 3. `20260714000143_fix_profile_role_trigger.sql`: preserves an explicit Auth role when creating admin, judge, or mentor profiles.
+4. `20260714131805_complete_submission_deadlines_and_email_outbox.sql`: challenge deadlines, transactional email outbox, strict final submissions, timestamp preservation, and jury SQL guard.
+5. `20260714131931_index_registration_email_outbox_team_event.sql`: covering index for the outbox composite foreign key.
+6. `20260714132323_fix_assignment_role_trigger.sql`: safe role validation for judge and mentor assignment triggers.
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 
@@ -52,6 +55,6 @@ Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_d
 
 The default 100-point construction-focused rubric is: functional product 30, use of OpenAI/Codex 25, technical execution 20, experience/demo 15, and impact/learning 10. Administrators may edit, deactivate, reweight, or add criteria.
 
-## Approved next schema work
+## Deployed schema, application pending deployment
 
-The next iteration adds a required `challenges.submission_deadline_at timestamptz` and a reliable registration-email outbox. It also strengthens final submission and jury constraints. Treat these as pending until their migrations, types, server checks, tests, and deployed behavior are verified.
+The three latest migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs, UI and tests remain a local application change until the Vercel deployment is verified.

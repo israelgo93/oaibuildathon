@@ -1,8 +1,10 @@
 import type { JudgeDashboardData, JudgeTeamData } from '../../src/types/api.js'
 import type { Tables } from '../../src/types/database.js'
+import { effectiveSubmissionDeadline } from '../../src/lib/dates.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
 import { getServerSupabase } from '../../server/supabase.js'
+import { submissionVisibleToJudge } from '../../server/judge-visibility.js'
 
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['GET'])
@@ -75,6 +77,11 @@ export default withErrorHandling(async (request, response) => {
       const teamChallenge = teamChallengeByTeam.get(team.id)
       const challenge = teamChallenge ? challengeById.get(teamChallenge.challenge_id) : undefined
       const evaluation = evaluationByTeam.get(team.id) ?? null
+      const rawSubmission = submissionByTeam.get(team.id)
+      const submissionStatus = rawSubmission?.status ?? 'draft'
+      const deadlineAt = challenge
+        ? effectiveSubmissionDeadline(challenge.submission_deadline_at, event.submissions_close_at)
+        : event.submissions_close_at ?? event.ends_at
       return [{
         assignmentId: assignment.id,
         team: {
@@ -84,8 +91,14 @@ export default withErrorHandling(async (request, response) => {
           organization: team.organization,
           city: team.city,
         },
-        challenge: challenge ? { id: challenge.id, title: challenge.title } : null,
-        submission: submissionByTeam.get(team.id) ?? null,
+        challenge: challenge ? {
+          id: challenge.id,
+          title: challenge.title,
+          submission_deadline_at: challenge.submission_deadline_at,
+        } : null,
+        deadlineAt,
+        submissionStatus,
+        submission: submissionVisibleToJudge(rawSubmission),
         evaluation,
         scores: evaluation ? scores.filter((score) => score.evaluation_id === evaluation.id) : [],
       }]

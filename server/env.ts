@@ -5,6 +5,13 @@ interface ServerEnvironment {
   turnstileSecretKey: string | null
 }
 
+export interface RegistrationEmailEnvironment {
+  apiKey: string
+  from: string
+  replyTo: string
+  appBaseUrl: string
+}
+
 function requiredEnvironmentValue(name: string): string {
   const value = process.env[name]?.trim()
 
@@ -27,5 +34,24 @@ export function getServerEnvironment(): ServerEnvironment {
     supabaseSecretKey: requiredEnvironmentValue('SUPABASE_SECRET_KEY'),
     teamSessionSecret,
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY?.trim() || null,
+  }
+}
+
+export function getRegistrationEmailEnvironment(): RegistrationEmailEnvironment | null {
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  const from = process.env.RESEND_FROM?.trim()
+  const replyTo = process.env.RESEND_REPLY_TO?.trim()
+  const appBaseUrl = process.env.APP_BASE_URL?.trim()
+
+  if (!apiKey || !from || !replyTo || !appBaseUrl) return null
+
+  const url = new URL(appBaseUrl)
+  if (url.protocol !== 'https:') throw new Error('APP_BASE_URL debe usar HTTPS')
+
+  return {
+    apiKey,
+    from,
+    replyTo,
+    appBaseUrl: url.toString().replace(/\/$/, ''),
   }
 }

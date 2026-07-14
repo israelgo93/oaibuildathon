@@ -34,6 +34,7 @@ export default withErrorHandling(async (request, response) => {
       ends_at: event.ends_at,
       registration_open: event.registration_open,
       submissions_open: event.submissions_open,
+      submissions_close_at: event.submissions_close_at,
       min_team_size: event.min_team_size,
       max_team_size: event.max_team_size,
     },
@@ -44,6 +45,7 @@ export default withErrorHandling(async (request, response) => {
       requirements: challenge.requirements,
       max_teams: challenge.max_teams,
       sort_order: challenge.sort_order,
+      submission_deadline_at: challenge.submission_deadline_at,
     })),
   }
 

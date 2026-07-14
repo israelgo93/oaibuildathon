@@ -3,6 +3,10 @@ import { Link } from 'react-router-dom'
 import { ApiClientError, apiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
+import { formatEcuadorDateTime, isDeadlineReached } from '@/lib/dates'
+import { finalSubmissionError } from '@/lib/submission'
+import { mapTechnologySelection, normalizeTechnologyStack, splitCustomTechnologies, TECHNOLOGY_OPTIONS, type TechnologyOption } from '@/lib/technologies'
 import type { SubmissionInput, TeamLoginInput, TeamPortalData } from '@/types/api'
 
 interface SubmissionFormState {
@@ -10,7 +14,9 @@ interface SubmissionFormState {
   shortDescription: string
   problem: string
   solution: string
-  techStack: string
+  selectedTechnologies: TechnologyOption[]
+  customTechnologies: string
+  includeOtherTechnologies: boolean
   repositoryUrl: string
   demoUrl: string
   presentationUrl: string
@@ -18,12 +24,15 @@ interface SubmissionFormState {
 }
 
 function submissionState(portal: TeamPortalData): SubmissionFormState {
+  const technologySelection = mapTechnologySelection(portal.submission.tech_stack)
   return {
     projectName: portal.submission.project_name,
     shortDescription: portal.submission.short_description,
     problem: portal.submission.problem,
     solution: portal.submission.solution,
-    techStack: portal.submission.tech_stack.join(', '),
+    selectedTechnologies: technologySelection.selected,
+    customTechnologies: technologySelection.custom.join(', '),
+    includeOtherTechnologies: technologySelection.custom.length > 0,
     repositoryUrl: portal.submission.repository_url,
     demoUrl: portal.submission.demo_url,
     presentationUrl: portal.submission.presentation_url,
@@ -81,21 +90,34 @@ export function TeamPortalPage() {
 
   const saveSubmission = async (submit: boolean) => {
     if (!form) return
-    setSaving(true)
     setMessage('')
     setSuccess('')
+    const techStack = normalizeTechnologyStack([
+      ...form.selectedTechnologies,
+      ...(form.includeOtherTechnologies ? splitCustomTechnologies(form.customTechnologies) : []),
+    ])
     const input: SubmissionInput = {
       projectName: form.projectName,
       shortDescription: form.shortDescription,
       problem: form.problem,
       solution: form.solution,
-      techStack: form.techStack.split(',').map((item) => item.trim()).filter(Boolean),
+      techStack,
       repositoryUrl: form.repositoryUrl,
       demoUrl: form.demoUrl,
       presentationUrl: form.presentationUrl,
       videoUrl: form.videoUrl,
       submit,
     }
+
+    if (submit) {
+      const validationError = finalSubmissionError(input)
+      if (validationError) {
+        setMessage(validationError)
+        return
+      }
+    }
+
+    setSaving(true)
 
     try {
       const data = await apiRequest<TeamPortalData>('/api/team', { method: 'PATCH', body: JSON.stringify(input) })
@@ -106,6 +128,14 @@ export function TeamPortalPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const toggleTechnology = (technology: TechnologyOption) => {
+    if (!form) return
+    const selected = form.selectedTechnologies.includes(technology)
+      ? form.selectedTechnologies.filter((item) => item !== technology)
+      : [...form.selectedTechnologies, technology]
+    setForm({ ...form, selectedTechnologies: selected })
   }
 
   if (loading) {
@@ -135,7 +165,13 @@ export function TeamPortalPage() {
     )
   }
 
-  const locked = portal.submission.status === 'published' || !portal.event.submissions_open
+  const deadlineReached = isDeadlineReached(portal.submissionDeadlineAt)
+  const locked = portal.submission.status === 'published' || !portal.event.submissions_open || deadlineReached
+  const lockedMessage = portal.submission.status === 'published'
+    ? 'El proyecto ya esta publicado en la vitrina.'
+    : deadlineReached
+      ? `El deadline finalizo el ${formatEcuadorDateTime(portal.submissionDeadlineAt)}.`
+      : 'La etapa de entregas esta cerrada.'
 
   return (
     <SystemLayout eyebrow={portal.event.name} title={portal.team.name}>
@@ -148,7 +184,7 @@ export function TeamPortalPage() {
       </div>
       {message ? <StatusMessage kind="error">{message}</StatusMessage> : null}
       {success ? <StatusMessage kind="success">{success}</StatusMessage> : null}
-      {locked ? <StatusMessage>{portal.submission.status === 'published' ? 'El proyecto ya esta publicado en la vitrina.' : 'La etapa de entregas esta cerrada.'}</StatusMessage> : null}
+      {locked ? <StatusMessage>{lockedMessage}</StatusMessage> : null}
       <div className="portal-grid">
         <aside className="portal-sidebar">
           <section className="system-card compact-card">
@@ -156,6 +192,7 @@ export function TeamPortalPage() {
             <h2>{portal.challenge.title}</h2>
             <p>{portal.challenge.description}</p>
             {portal.challenge.requirements ? <small>{portal.challenge.requirements}</small> : null}
+            <p><strong>Deadline:</strong> {formatEcuadorDateTime(portal.submissionDeadlineAt)}</p>
           </section>
           <section className="system-card compact-card">
             <p className="system-eyebrow">Equipo · {portal.members.length}</p>
@@ -169,27 +206,38 @@ export function TeamPortalPage() {
 
         <form className="system-card system-form submission-form" onSubmit={(event) => {
           event.preventDefault()
-          void saveSubmission(false)
+          const submitter = event.nativeEvent.submitter as HTMLButtonElement | null
+          void saveSubmission(submitter?.value === 'final')
         }}>
           <div className="form-section-heading">
             <h2>Entrega del proyecto</h2>
             <p>Describe lo que construyeron. Solo los proyectos publicados por administracion aparecen en la landing.</p>
           </div>
-          <label>Nombre del proyecto<input required maxLength={100} disabled={locked} value={form.projectName} onChange={(event) => setForm({ ...form, projectName: event.target.value })} /></label>
-          <label>Descripcion corta<textarea required maxLength={240} rows={3} disabled={locked} value={form.shortDescription} onChange={(event) => setForm({ ...form, shortDescription: event.target.value })} /></label>
-          <label>Problema<textarea required maxLength={2000} rows={5} disabled={locked} value={form.problem} onChange={(event) => setForm({ ...form, problem: event.target.value })} /></label>
-          <label>Solucion construida<textarea required maxLength={3000} rows={6} disabled={locked} value={form.solution} onChange={(event) => setForm({ ...form, solution: event.target.value })} /></label>
-          <label>Tecnologias, separadas por comas<input disabled={locked} value={form.techStack} onChange={(event) => setForm({ ...form, techStack: event.target.value })} placeholder="OpenAI API, Codex, React, Supabase" /></label>
+          <RequiredFieldsLegend />
+          <label><RequiredFieldLabel>Nombre del proyecto</RequiredFieldLabel><input required maxLength={100} disabled={locked} value={form.projectName} onChange={(event) => setForm({ ...form, projectName: event.target.value })} /></label>
+          <label><RequiredFieldLabel>Descripcion corta</RequiredFieldLabel><textarea required maxLength={240} rows={3} disabled={locked} value={form.shortDescription} onChange={(event) => setForm({ ...form, shortDescription: event.target.value })} /></label>
+          <label><RequiredFieldLabel>Problema</RequiredFieldLabel><textarea required maxLength={2000} rows={5} disabled={locked} value={form.problem} onChange={(event) => setForm({ ...form, problem: event.target.value })} /></label>
+          <label><RequiredFieldLabel>Solucion construida</RequiredFieldLabel><textarea required maxLength={3000} rows={6} disabled={locked} value={form.solution} onChange={(event) => setForm({ ...form, solution: event.target.value })} /></label>
+          <fieldset className="technology-fieldset">
+            <legend><RequiredFieldLabel>Tecnologias</RequiredFieldLabel></legend>
+            <div className="technology-grid">
+              {TECHNOLOGY_OPTIONS.map((technology) => (
+                <label key={technology}><input type="checkbox" disabled={locked} checked={form.selectedTechnologies.includes(technology)} onChange={() => toggleTechnology(technology)} /> {technology}</label>
+              ))}
+              <label><input type="checkbox" disabled={locked} checked={form.includeOtherTechnologies} onChange={(event) => setForm({ ...form, includeOtherTechnologies: event.target.checked, customTechnologies: event.target.checked ? form.customTechnologies : '' })} /> Otras</label>
+            </div>
+            {form.includeOtherTechnologies ? <label><OptionalFieldLabel>Tecnologias adicionales, separadas por comas</OptionalFieldLabel><input disabled={locked} maxLength={1200} value={form.customTechnologies} onChange={(event) => setForm({ ...form, customTechnologies: event.target.value })} placeholder="Otra herramienta, framework propio" /></label> : null}
+          </fieldset>
           <div className="form-grid">
-            <label>URL de demo<input type="url" disabled={locked} value={form.demoUrl} onChange={(event) => setForm({ ...form, demoUrl: event.target.value })} /></label>
-            <label>Repositorio<input type="url" disabled={locked} value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} /></label>
-            <label>Presentacion<input type="url" disabled={locked} value={form.presentationUrl} onChange={(event) => setForm({ ...form, presentationUrl: event.target.value })} /></label>
-            <label>Video<input type="url" disabled={locked} value={form.videoUrl} onChange={(event) => setForm({ ...form, videoUrl: event.target.value })} /></label>
+            <label><RequiredFieldLabel>URL de demo</RequiredFieldLabel><input required type="url" disabled={locked} value={form.demoUrl} onChange={(event) => setForm({ ...form, demoUrl: event.target.value })} /></label>
+            <label><RequiredFieldLabel>Repositorio</RequiredFieldLabel><input required type="url" disabled={locked} value={form.repositoryUrl} onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })} /></label>
+            <label><OptionalFieldLabel>Presentacion</OptionalFieldLabel><input type="url" disabled={locked} value={form.presentationUrl} onChange={(event) => setForm({ ...form, presentationUrl: event.target.value })} /></label>
+            <label><OptionalFieldLabel>Video</OptionalFieldLabel><input type="url" disabled={locked} value={form.videoUrl} onChange={(event) => setForm({ ...form, videoUrl: event.target.value })} /></label>
           </div>
           {!locked ? (
             <div className="system-actions">
-              <button className="system-button" type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar borrador'}</button>
-              <button className="system-button system-button-primary" type="button" disabled={saving} onClick={() => void saveSubmission(true)}>Enviar al jurado</button>
+              <button className="system-button" type="submit" name="submissionAction" value="draft" formNoValidate disabled={saving}>{saving ? 'Guardando...' : 'Guardar borrador'}</button>
+              <button className="system-button system-button-primary" type="submit" name="submissionAction" value="final" disabled={saving}>Enviar al jurado</button>
             </div>
           ) : null}
         </form>

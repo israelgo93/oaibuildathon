@@ -1,3 +1,4 @@
+import { waitUntil } from '@vercel/functions'
 import type { Json, Tables } from '../src/types/database.js'
 import { requireRole } from '../server/auth.js'
 import { getRequestIp, HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../server/http.js'
@@ -5,6 +6,7 @@ import { createRegistrationCode, createTeamToken, hashTeamToken, setTeamSessionC
 import { getServerSupabase } from '../server/supabase.js'
 import { verifyTurnstile } from '../server/turnstile.js'
 import { registrationSchema } from '../server/validation.js'
+import { safelyProcessRegistrationEmailForTeam } from '../server/registration-email.js'
 
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['POST'])
@@ -61,6 +63,12 @@ export default withErrorHandling(async (request, response) => {
   }
 
   const team = teamRaw as Tables<'teams'>
+  const emailTask = safelyProcessRegistrationEmailForTeam(team.id)
+  try {
+    waitUntil(emailTask)
+  } catch {
+    void emailTask
+  }
   setTeamSessionCookie(response, token)
   setPrivateResponse(response)
   response.status(201).json({

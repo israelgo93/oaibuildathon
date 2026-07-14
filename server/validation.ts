@@ -1,12 +1,21 @@
 import { z } from 'zod'
+import { normalizeTechnologyStack } from '../src/lib/technologies.js'
+import { isValidSubmissionUrl } from '../src/lib/submission.js'
 
 const requiredText = (label: string, maxLength: number) =>
   z.string().trim().min(1, `${label} es obligatorio`).max(maxLength, `${label} es demasiado largo`)
 
 const optionalUrl = z.union([
   z.literal(''),
-  z.string().trim().url('Ingresa una URL valida').max(500, 'La URL es demasiado larga'),
+  z.string().trim().url('Ingresa una URL valida').max(500, 'La URL es demasiado larga').refine(isValidSubmissionUrl, 'La URL debe usar HTTP o HTTPS'),
 ])
+
+const draftText = (label: string, maxLength: number) =>
+  z.string().trim().max(maxLength, `${label} es demasiado largo`)
+
+const technologyStackSchema = z.array(z.string())
+  .transform(normalizeTechnologyStack)
+  .pipe(z.array(z.string().min(1).max(60, 'Cada tecnologia admite hasta 60 caracteres')).max(20, 'Puedes seleccionar hasta 20 tecnologias'))
 
 export const registrationSchema = z.object({
   eventId: z.string().uuid(),
@@ -43,19 +52,38 @@ export const teamLoginSchema = z.object({
 })
 
 export const submissionSchema = z.object({
-  projectName: requiredText('El nombre del proyecto', 100),
-  shortDescription: requiredText('La descripcion corta', 240),
-  problem: requiredText('El problema', 2000),
-  solution: requiredText('La solucion', 3000),
-  techStack: z.array(requiredText('La tecnologia', 60)).max(20),
+  projectName: draftText('El nombre del proyecto', 100),
+  shortDescription: draftText('La descripcion corta', 240),
+  problem: draftText('El problema', 2000),
+  solution: draftText('La solucion', 3000),
+  techStack: technologyStackSchema,
   repositoryUrl: optionalUrl,
   demoUrl: optionalUrl,
   presentationUrl: optionalUrl,
   videoUrl: optionalUrl,
   submit: z.boolean(),
 }).superRefine((value, context) => {
-  if (value.submit && !value.demoUrl && !value.repositoryUrl) {
-    context.addIssue({ code: 'custom', message: 'Agrega al menos una URL de demo o repositorio', path: ['demoUrl'] })
+  if (!value.submit) return
+
+  const requiredFields = [
+    ['projectName', value.projectName, 'El nombre del proyecto es obligatorio'],
+    ['shortDescription', value.shortDescription, 'La descripcion corta es obligatoria'],
+    ['problem', value.problem, 'El problema es obligatorio'],
+    ['solution', value.solution, 'La solucion construida es obligatoria'],
+  ] as const
+
+  for (const [path, fieldValue, message] of requiredFields) {
+    if (!fieldValue) context.addIssue({ code: 'custom', message, path: [path] })
+  }
+
+  if (value.techStack.length === 0) {
+    context.addIssue({ code: 'custom', message: 'Selecciona al menos una tecnologia', path: ['techStack'] })
+  }
+  if (!value.demoUrl) {
+    context.addIssue({ code: 'custom', message: 'La URL de demo es obligatoria', path: ['demoUrl'] })
+  }
+  if (!value.repositoryUrl) {
+    context.addIssue({ code: 'custom', message: 'La URL del repositorio es obligatoria', path: ['repositoryUrl'] })
   }
 })
 
@@ -102,8 +130,8 @@ export const adminActionSchema = z.discriminatedUnion('action', [
       max_team_size: z.number().int().min(1).max(3).optional(),
     }).strict(),
   }),
-  z.object({ action: z.literal('create_challenge'), eventId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), maxTeams: z.number().int().positive().nullable().default(null) }),
-  z.object({ action: z.literal('update_challenge'), challengeId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), active: z.boolean(), maxTeams: z.number().int().positive().nullable().default(null) }),
+  z.object({ action: z.literal('create_challenge'), eventId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
+  z.object({ action: z.literal('update_challenge'), challengeId: z.string().uuid(), title: requiredText('El titulo', 120), description: requiredText('La descripcion', 1500), requirements: z.string().trim().max(2000), active: z.boolean(), maxTeams: z.number().int().positive().nullable().default(null), submissionDeadlineAt: z.string().datetime({ offset: true }) }),
   z.object({ action: z.literal('create_criterion'), eventId: z.string().uuid(), name: requiredText('El criterio', 120), description: requiredText('La descripcion', 1500), maxScore: z.number().positive().max(100), weight: z.number().positive().max(100) }),
   z.object({ action: z.literal('update_criterion'), criterionId: z.string().uuid(), name: requiredText('El criterio', 120), description: requiredText('La descripcion', 1500), maxScore: z.number().positive().max(100), weight: z.number().positive().max(100), active: z.boolean() }),
   z.object({ action: z.literal('set_team_status'), teamId: z.string().uuid(), status: z.enum(['registered', 'active', 'withdrawn', 'disqualified']) }),
@@ -113,4 +141,5 @@ export const adminActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('assign_mentor'), eventId: z.string().uuid(), mentorId: z.string().uuid(), teamId: z.string().uuid(), notes: z.string().trim().max(2000) }),
   z.object({ action: z.literal('remove_judge_assignment'), assignmentId: z.string().uuid() }),
   z.object({ action: z.literal('remove_mentor_assignment'), assignmentId: z.string().uuid() }),
+  z.object({ action: z.literal('retry_registration_email'), outboxId: z.string().uuid() }),
 ])

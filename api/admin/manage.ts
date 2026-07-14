@@ -1,10 +1,12 @@
+import { waitUntil } from '@vercel/functions'
 import type { AdminAction } from '../../src/types/api.js'
 import type { Json, Tables, TablesInsert, TablesUpdate } from '../../src/types/database.js'
 import { writeAuditLog } from '../../server/audit.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
 import { getServerSupabase } from '../../server/supabase.js'
-import { adminActionSchema } from '../../server/validation.js'
+import { adminActionSchema, submissionSchema } from '../../server/validation.js'
+import { safelyProcessRegistrationEmailForTeam } from '../../server/registration-email.js'
 
 async function requireStaffRole(profileId: string, role: 'judge' | 'mentor'): Promise<void> {
   const { data: profileRaw, error } = await getServerSupabase()
@@ -40,17 +42,56 @@ async function publishSubmission(submissionId: string): Promise<void> {
 
   if (error || !submissionRaw) throw new HttpError(404, 'La entrega no existe')
   const submission = submissionRaw as Tables<'project_submissions'>
-  if (!submission.project_name || !submission.short_description || (!submission.demo_url && !submission.repository_url)) {
-    throw new HttpError(409, 'La entrega necesita nombre, descripcion y una URL de demo o repositorio antes de publicarse')
+  if (submission.status === 'draft' || !submission.submitted_at) {
+    throw new HttpError(409, 'La entrega debe enviarse al jurado antes de publicarse')
   }
+  requireCompleteSubmission(submission)
 
   const values: TablesUpdate<'project_submissions'> = {
     status: 'published',
-    submitted_at: submission.submitted_at ?? new Date().toISOString(),
     published_at: new Date().toISOString(),
   }
   const { error: updateError } = await supabase.from('project_submissions').update(values).eq('id', submissionId)
   if (updateError) throw new HttpError(500, 'No fue posible publicar la entrega')
+}
+
+function requireCompleteSubmission(submission: Tables<'project_submissions'>): void {
+  const result = submissionSchema.safeParse({
+    projectName: submission.project_name,
+    shortDescription: submission.short_description,
+    problem: submission.problem,
+    solution: submission.solution,
+    techStack: submission.tech_stack,
+    repositoryUrl: submission.repository_url,
+    demoUrl: submission.demo_url,
+    presentationUrl: submission.presentation_url,
+    videoUrl: submission.video_url,
+    submit: true,
+  })
+
+  if (!result.success) {
+    throw new HttpError(409, result.error.issues[0]?.message ?? 'La entrega final esta incompleta')
+  }
+}
+
+async function submitSubmissionAsAdmin(submissionId: string): Promise<void> {
+  const supabase = getServerSupabase()
+  const { data: submissionRaw, error } = await supabase
+    .from('project_submissions')
+    .select('*')
+    .eq('id', submissionId)
+    .single()
+
+  if (error || !submissionRaw) throw new HttpError(404, 'La entrega no existe')
+  const submission = submissionRaw as Tables<'project_submissions'>
+  requireCompleteSubmission(submission)
+  const values: TablesUpdate<'project_submissions'> = {
+    status: 'submitted',
+    submitted_at: new Date().toISOString(),
+    published_at: null,
+  }
+  const { error: updateError } = await supabase.from('project_submissions').update(values).eq('id', submissionId)
+  if (updateError) throw new HttpError(500, 'No fue posible enviar la entrega')
 }
 
 export default withErrorHandling(async (request, response) => {
@@ -69,7 +110,7 @@ export default withErrorHandling(async (request, response) => {
         throw new HttpError(400, 'El minimo del equipo no puede superar el maximo')
       }
       const { error } = await supabase.from('events').update(values).eq('id', input.eventId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible actualizar el evento')
       auditEntityType = 'event'
       auditEntityId = input.eventId
       auditMetadata = { fields: Object.keys(input.values) }
@@ -82,9 +123,10 @@ export default withErrorHandling(async (request, response) => {
         description: input.description,
         requirements: input.requirements,
         max_teams: input.maxTeams,
+        submission_deadline_at: input.submissionDeadlineAt,
       }
       const { data: challengeRaw, error } = await supabase.from('challenges').insert(values).select('*').single()
-      if (error || !challengeRaw) throw new HttpError(400, error?.message ?? 'No fue posible crear el reto')
+      if (error || !challengeRaw) throw new HttpError(400, 'No fue posible crear el reto')
       const challenge = challengeRaw as Tables<'challenges'>
       auditEntityType = 'challenge'
       auditEntityId = challenge.id
@@ -97,9 +139,10 @@ export default withErrorHandling(async (request, response) => {
         requirements: input.requirements,
         active: input.active,
         max_teams: input.maxTeams,
+        submission_deadline_at: input.submissionDeadlineAt,
       }
       const { error } = await supabase.from('challenges').update(values).eq('id', input.challengeId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible actualizar el reto')
       auditEntityType = 'challenge'
       auditEntityId = input.challengeId
       break
@@ -113,7 +156,7 @@ export default withErrorHandling(async (request, response) => {
         weight: input.weight,
       }
       const { data: criterionRaw, error } = await supabase.from('evaluation_criteria').insert(values).select('*').single()
-      if (error || !criterionRaw) throw new HttpError(400, error?.message ?? 'No fue posible crear el criterio')
+      if (error || !criterionRaw) throw new HttpError(400, 'No fue posible crear el criterio')
       const criterion = criterionRaw as Tables<'evaluation_criteria'>
       auditEntityType = 'criterion'
       auditEntityId = criterion.id
@@ -128,14 +171,14 @@ export default withErrorHandling(async (request, response) => {
         active: input.active,
       }
       const { error } = await supabase.from('evaluation_criteria').update(values).eq('id', input.criterionId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible actualizar el criterio')
       auditEntityType = 'criterion'
       auditEntityId = input.criterionId
       break
     }
     case 'set_team_status': {
       const { error } = await supabase.from('teams').update({ status: input.status } satisfies TablesUpdate<'teams'>).eq('id', input.teamId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible actualizar el equipo')
       auditEntityType = 'team'
       auditEntityId = input.teamId
       auditMetadata = { status: input.status }
@@ -144,14 +187,16 @@ export default withErrorHandling(async (request, response) => {
     case 'set_submission_status': {
       if (input.status === 'published') {
         await publishSubmission(input.submissionId)
+      } else if (input.status === 'submitted') {
+        await submitSubmissionAsAdmin(input.submissionId)
       } else {
         const values: TablesUpdate<'project_submissions'> = {
-          status: input.status,
+          status: 'draft',
           published_at: null,
-          submitted_at: input.status === 'draft' ? null : new Date().toISOString(),
+          submitted_at: null,
         }
         const { error } = await supabase.from('project_submissions').update(values).eq('id', input.submissionId)
-        if (error) throw new HttpError(400, error.message)
+        if (error) throw new HttpError(400, 'No fue posible reabrir la entrega')
       }
       auditEntityType = 'submission'
       auditEntityId = input.submissionId
@@ -181,7 +226,7 @@ export default withErrorHandling(async (request, response) => {
         is_primary_contact: false,
       }
       const { data: memberRaw, error } = await supabase.from('team_members').insert(values).select('*').single()
-      if (error || !memberRaw) throw new HttpError(400, error?.message ?? 'No fue posible agregar el participante')
+      if (error || !memberRaw) throw new HttpError(400, 'No fue posible agregar el participante')
       const member = memberRaw as Tables<'team_members'>
       auditEntityType = 'team_member'
       auditEntityId = member.id
@@ -196,7 +241,7 @@ export default withErrorHandling(async (request, response) => {
         team_id: input.teamId,
       }
       const { data: assignmentRaw, error } = await supabase.from('judge_assignments').insert(values).select('*').single()
-      if (error || !assignmentRaw) throw new HttpError(400, error?.message ?? 'No fue posible asignar el jurado')
+      if (error || !assignmentRaw) throw new HttpError(400, 'No fue posible asignar el jurado')
       const assignment = assignmentRaw as Tables<'judge_assignments'>
       auditEntityType = 'judge_assignment'
       auditEntityId = assignment.id
@@ -211,7 +256,7 @@ export default withErrorHandling(async (request, response) => {
         notes: input.notes,
       }
       const { data: assignmentRaw, error } = await supabase.from('mentor_assignments').insert(values).select('*').single()
-      if (error || !assignmentRaw) throw new HttpError(400, error?.message ?? 'No fue posible asignar el mentor')
+      if (error || !assignmentRaw) throw new HttpError(400, 'No fue posible asignar el mentor')
       const assignment = assignmentRaw as Tables<'mentor_assignments'>
       auditEntityType = 'mentor_assignment'
       auditEntityId = assignment.id
@@ -219,16 +264,47 @@ export default withErrorHandling(async (request, response) => {
     }
     case 'remove_judge_assignment': {
       const { error } = await supabase.from('judge_assignments').delete().eq('id', input.assignmentId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible quitar la asignacion de jurado')
       auditEntityType = 'judge_assignment'
       auditEntityId = input.assignmentId
       break
     }
     case 'remove_mentor_assignment': {
       const { error } = await supabase.from('mentor_assignments').delete().eq('id', input.assignmentId)
-      if (error) throw new HttpError(400, error.message)
+      if (error) throw new HttpError(400, 'No fue posible quitar la asignacion de mentor')
       auditEntityType = 'mentor_assignment'
       auditEntityId = input.assignmentId
+      break
+    }
+    case 'retry_registration_email': {
+      const { data: outboxRaw, error: outboxError } = await supabase
+        .from('registration_email_outbox')
+        .select('*')
+        .eq('id', input.outboxId)
+        .single()
+      if (outboxError || !outboxRaw) throw new HttpError(404, 'La notificacion no existe')
+      const outbox = outboxRaw as Tables<'registration_email_outbox'>
+      if (outbox.status === 'sent') throw new HttpError(409, 'El correo ya fue enviado')
+
+      const values: TablesUpdate<'registration_email_outbox'> = {
+        status: 'pending',
+        next_attempt_at: new Date().toISOString(),
+        provider_id: null,
+        last_error_code: null,
+        sent_at: null,
+      }
+      const { error } = await supabase.from('registration_email_outbox').update(values).eq('id', outbox.id)
+      if (error) throw new HttpError(500, 'No fue posible reintentar el correo')
+
+      const emailTask = safelyProcessRegistrationEmailForTeam(outbox.team_id)
+      try {
+        waitUntil(emailTask)
+      } catch {
+        void emailTask
+      }
+      auditEntityType = 'registration_email_outbox'
+      auditEntityId = outbox.id
+      auditMetadata = { team_id: outbox.team_id }
       break
     }
     default: {

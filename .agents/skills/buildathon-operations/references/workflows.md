@@ -43,9 +43,9 @@ This reference separates deployed behavior from the approved next iteration. Ver
 - Team: `registered -> active`; administration can mark `withdrawn` or `disqualified`.
 - Evaluation: draft (`submitted=false`) -> final (`submitted=true`) while scoring is open.
 
-## Approved next workflow
+## Local workflow pending deployment
 
-`docs/NEXT_ITERATION_PROMPT.md` defines the next implementation:
+`docs/NEXT_ITERATION_PROMPT.md` defines the implementation now present in the local tree:
 
 - visible and accessible required-field indicators in public and manual registration;
 - incomplete drafts but strict final submission, including demo, repository, and at least one technology;
@@ -54,4 +54,4 @@ This reference separates deployed behavior from the approved next iteration. Ver
 - jury access and scoring restricted to `submitted` or `published` projects, with submission timing visible;
 - registration confirmation through Resend using a server-side outbox and idempotent delivery.
 
-Do not describe this section as current until database, API, UI, tests, documentation, and production verification all agree.
+The database migrations and generated types now agree with production. Do not describe the complete workflow as current production until the application deployment and live verification agree; transactional delivery additionally requires the pending Resend configuration.

@@ -3,6 +3,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type UserRole = 'admin' | 'judge' | 'mentor'
 export type TeamStatus = 'registered' | 'active' | 'withdrawn' | 'disqualified'
 export type SubmissionStatus = 'draft' | 'submitted' | 'published'
+export type RegistrationEmailStatus = 'pending' | 'retry' | 'sent' | 'failed'
 
 export type EventRow = {
   id: string
@@ -46,7 +47,24 @@ export type ChallengeRow = {
   requirements: string
   active: boolean
   max_teams: number | null
+  submission_deadline_at: string
   sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type RegistrationEmailOutboxRow = {
+  id: string
+  team_id: string
+  event_id: string
+  notification_type: 'team_registration'
+  idempotency_key: string
+  status: RegistrationEmailStatus
+  attempts: number
+  next_attempt_at: string | null
+  provider_id: string | null
+  last_error_code: string | null
+  sent_at: string | null
   created_at: string
   updated_at: string
 }
@@ -185,7 +203,7 @@ export interface Database {
     Tables: {
       events: TableDefinition<EventRow, InsertRow<EventRow, 'slug' | 'name' | 'starts_at' | 'ends_at'>>
       profiles: TableDefinition<ProfileRow, InsertRow<ProfileRow, 'id' | 'role' | 'full_name' | 'email'>>
-      challenges: TableDefinition<ChallengeRow, InsertRow<ChallengeRow, 'event_id' | 'title' | 'description'>>
+      challenges: TableDefinition<ChallengeRow, InsertRow<ChallengeRow, 'event_id' | 'title' | 'description' | 'submission_deadline_at'>>
       teams: TableDefinition<TeamRow, InsertRow<TeamRow, 'event_id' | 'name' | 'contact_email' | 'registration_code' | 'management_token_hash'>>
       team_members: TableDefinition<TeamMemberRow, InsertRow<TeamMemberRow, 'team_id' | 'event_id' | 'position' | 'full_name' | 'email'>>
       team_challenges: TableDefinition<TeamChallengeRow, InsertRow<TeamChallengeRow, 'team_id' | 'challenge_id' | 'event_id'>>
@@ -196,6 +214,7 @@ export interface Database {
       evaluation_scores: TableDefinition<EvaluationScoreRow, InsertRow<EvaluationScoreRow, 'evaluation_id' | 'criterion_id' | 'score'>>
       mentor_assignments: TableDefinition<MentorAssignmentRow, InsertRow<MentorAssignmentRow, 'event_id' | 'mentor_id' | 'team_id'>>
       audit_logs: TableDefinition<AuditLogRow, InsertRow<AuditLogRow, 'action' | 'entity_type'>>
+      registration_email_outbox: TableDefinition<RegistrationEmailOutboxRow, InsertRow<RegistrationEmailOutboxRow, 'team_id' | 'event_id' | 'idempotency_key'>>
     }
     Views: Record<never, never>
     Functions: {

@@ -378,6 +378,27 @@
 .mentor-notes { padding: 18px; border: 0; border-radius: 10px; background: oklch(0.95 0.025 70); }
 .mentor-notes p { margin: 8px 0 0; color: oklch(0.42 0.04 70); line-height: 1.5; }
 
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.required-mark { color: oklch(0.5 0.2 25); font-weight: 900; }
+.optional-mark { color: oklch(0.52 0.02 250); font-size: 0.7em; font-weight: 600; }
+.required-fields-legend { margin: 0; color: oklch(0.42 0.025 250); font-size: 0.75rem; font-weight: 750; }
+.required-fields-legend span { color: oklch(0.5 0.2 25); }
+.challenge-fieldset, .technology-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.challenge-fieldset > legend, .technology-fieldset > legend { padding: 0; color: oklch(0.2 0.025 250); font-family: var(--font-display); font-size: 1.5rem; font-weight: 800; }
+.challenge-fieldset > p { color: oklch(0.48 0.025 250); }
+.technology-fieldset { display: grid; gap: 16px; }
+.technology-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.technology-grid label { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid oklch(0.84 0.025 250); border-radius: 9px; background: oklch(0.985 0.005 250); font-size: 0.74rem; font-weight: 700; }
+.technology-grid input { width: auto; min-height: auto; accent-color: var(--primary); }
+.submission-metadata { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; color: oklch(0.46 0.025 250); font-size: 0.7rem; }
+.timing-on-time { color: oklch(0.43 0.14 150); font-weight: 850; }
+.timing-late { color: oklch(0.5 0.18 25); font-weight: 850; }
+.technology-tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 7px; }
+.technology-tags span { padding: 6px 9px; border-radius: 999px; background: oklch(0.94 0.035 300); color: oklch(0.36 0.09 300); font-size: 0.66rem; font-weight: 800; }
+.status-sent { background: oklch(0.92 0.08 150); color: oklch(0.38 0.12 150); }
+.status-pending, .status-retry { background: oklch(0.94 0.06 80); color: oklch(0.42 0.1 70); }
+.status-failed { background: oklch(0.93 0.07 25); color: oklch(0.46 0.16 25); }
+
 @media (max-width: 960px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .challenge-grid { grid-template-columns: 1fr; }
@@ -404,6 +425,7 @@
   .auth-aside { min-height: 430px; }
   .create-row { grid-template-columns: 1fr; }
   .project-brief { grid-template-columns: 1fr; }
+  .technology-grid { grid-template-columns: 1fr; }
   .project-links { grid-row: auto; }
   .system-footer { flex-direction: column; }
 }

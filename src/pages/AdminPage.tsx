@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { authenticatedApiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
+import { ecuadorDateTimeInputValue, ecuadorDateTimeToIso, effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
 import type { AdminAction, AdminDashboardData, CreateStaffInput, RegistrationInput, RegistrationResult } from '@/types/api'
 import type { Tables } from '@/types/database'
 
@@ -29,9 +31,7 @@ function formText(form: FormData, name: string): string {
 }
 
 function localDateTime(value: string): string {
-  const date = new Date(value)
-  const offset = date.getTimezoneOffset() * 60_000
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16)
+  return ecuadorDateTimeInputValue(value)
 }
 
 function optionalLocalDateTime(value: string | null): string {
@@ -40,7 +40,7 @@ function optionalLocalDateTime(value: string | null): string {
 
 function optionalIsoDate(form: FormData, name: string): string | null {
   const value = formText(form, name)
-  return value ? new Date(value).toISOString() : null
+  return value ? ecuadorDateTimeToIso(value) : null
 }
 
 function DashboardStat({ value, label, detail }: { value: number | string; label: string; detail: string }) {
@@ -130,7 +130,7 @@ function EventSection({ dashboard, mutate }: AdminSectionProps) {
   )
 }
 
-function ChallengeEditor({ challenge, mutate }: { challenge: Tables<'challenges'>; mutate: AdminSectionProps['mutate'] }) {
+function ChallengeEditor({ challenge, globalDeadline, mutate }: { challenge: Tables<'challenges'>; globalDeadline: string | null; mutate: AdminSectionProps['mutate'] }) {
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -143,6 +143,7 @@ function ChallengeEditor({ challenge, mutate }: { challenge: Tables<'challenges'
       requirements: formText(form, 'requirements'),
       active: form.get('active') === 'on',
       maxTeams: capacity ? Number(capacity) : null,
+      submissionDeadlineAt: ecuadorDateTimeToIso(formText(form, 'submissionDeadlineAt')),
     })
   }
 
@@ -153,6 +154,8 @@ function ChallengeEditor({ challenge, mutate }: { challenge: Tables<'challenges'
       <label>Descripcion<textarea name="description" required rows={3} defaultValue={challenge.description} /></label>
       <label>Requisitos<textarea name="requirements" rows={2} defaultValue={challenge.requirements} /></label>
       <label>Cupo de equipos<input name="maxTeams" type="number" min="1" placeholder="Sin limite" defaultValue={challenge.max_teams ?? ''} /></label>
+      <label>Deadline en America/Guayaquil (UTC-5)<input name="submissionDeadlineAt" type="datetime-local" required defaultValue={localDateTime(challenge.submission_deadline_at)} /></label>
+      <small>Corte efectivo actual: {formatEcuadorDateTime(effectiveSubmissionDeadline(challenge.submission_deadline_at, globalDeadline))}</small>
       <button className="system-button" type="submit">Actualizar reto</button>
     </form>
   )
@@ -192,7 +195,7 @@ function ChallengesSection({ dashboard, mutate }: AdminSectionProps) {
     submitEvent.preventDefault()
     const form = new FormData(submitEvent.currentTarget)
     const capacity = formText(form, 'maxTeams')
-    await mutate({ action: 'create_challenge', eventId: event.id, title: formText(form, 'title'), description: formText(form, 'description'), requirements: formText(form, 'requirements'), maxTeams: capacity ? Number(capacity) : null })
+    await mutate({ action: 'create_challenge', eventId: event.id, title: formText(form, 'title'), description: formText(form, 'description'), requirements: formText(form, 'requirements'), maxTeams: capacity ? Number(capacity) : null, submissionDeadlineAt: ecuadorDateTimeToIso(formText(form, 'submissionDeadlineAt')) })
     submitEvent.currentTarget.reset()
   }
 
@@ -207,8 +210,8 @@ function ChallengesSection({ dashboard, mutate }: AdminSectionProps) {
 
   return (
     <div className="admin-stack">
-      <section><div className="admin-section-heading"><div><p className="system-eyebrow">Construccion</p><h2>Retos</h2></div><span>{dashboard.challenges.filter((challenge) => challenge.active).length} activos</span></div><div className="editor-grid">{dashboard.challenges.map((challenge) => <ChallengeEditor key={challenge.id} challenge={challenge} mutate={mutate} />)}</div></section>
-      <form className="system-card system-form create-row" onSubmit={(event) => void createChallenge(event)}><h3>Crear reto</h3><label>Titulo<input name="title" required /></label><label>Descripcion<textarea name="description" required rows={2} /></label><label>Requisitos<textarea name="requirements" rows={2} /></label><label>Cupo<input name="maxTeams" type="number" min="1" /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
+      <section><div className="admin-section-heading"><div><p className="system-eyebrow">Construccion</p><h2>Retos</h2></div><span>{dashboard.challenges.filter((challenge) => challenge.active).length} activos</span></div><div className="editor-grid">{dashboard.challenges.map((challenge) => <ChallengeEditor key={challenge.id} challenge={challenge} globalDeadline={event.submissions_close_at} mutate={mutate} />)}</div></section>
+      <form className="system-card system-form create-row" onSubmit={(event) => void createChallenge(event)}><h3>Crear reto</h3><label>Titulo<input name="title" required /></label><label>Descripcion<textarea name="description" required rows={2} /></label><label>Requisitos<textarea name="requirements" rows={2} /></label><label>Cupo<input name="maxTeams" type="number" min="1" /></label><label>Deadline en America/Guayaquil (UTC-5)<input name="submissionDeadlineAt" type="datetime-local" required defaultValue={optionalLocalDateTime(event.submissions_close_at ?? event.ends_at)} /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
       <section><div className="admin-section-heading"><div><p className="system-eyebrow">Evaluacion dinamica</p><h2>Rubrica del jurado</h2></div><span>Maximo ponderado {activeMaxScore}</span></div><div className="editor-grid">{dashboard.criteria.map((criterion) => <CriterionEditor key={criterion.id} criterion={criterion} mutate={mutate} />)}</div></section>
       <form className="system-card system-form create-row" onSubmit={(event) => void createCriterion(event)}><h3>Crear criterio</h3><label>Nombre<input name="name" required /></label><label>Descripcion<textarea name="description" required rows={2} /></label><label>Maximo<input name="maxScore" type="number" min="1" max="100" defaultValue="10" /></label><label>Peso<input name="weight" type="number" min="0.1" max="100" step="0.1" defaultValue="1" /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
     </div>
@@ -250,12 +253,13 @@ function ManualTeamForm({ dashboard, reload }: { dashboard: AdminDashboardData; 
   return (
     <form className="system-card system-form admin-form" onSubmit={(event) => void submit(event)}>
       <div className="form-section-heading"><h2>Crear equipo manualmente</h2><p>Registra el contacto principal; luego puedes agregar hasta dos participantes adicionales.</p></div>
+      <RequiredFieldsLegend />
       {message ? <StatusMessage>{message}</StatusMessage> : null}
       <div className="form-grid">
-        <label>Equipo<input name="teamName" required /></label><label>Organizacion<input name="organization" /></label>
-        <label>Nombre del contacto<input name="fullName" required /></label><label>Correo<input name="email" type="email" required /></label>
-        <label>Telefono<input name="phone" required /></label><label>Ciudad<input name="city" defaultValue="Manta" required /></label>
-        <label>Rol<input name="memberRole" /></label><label>Reto<select name="challengeId" required>{dashboard.challenges.filter((challenge) => challenge.active).map((challenge) => <option key={challenge.id} value={challenge.id}>{challenge.title}</option>)}</select></label>
+        <label><RequiredFieldLabel>Nombre del equipo</RequiredFieldLabel><input name="teamName" required /></label><label><OptionalFieldLabel>Organizacion o comunidad</OptionalFieldLabel><input name="organization" /></label>
+        <label><RequiredFieldLabel>Nombre del contacto</RequiredFieldLabel><input name="fullName" required /></label><label><RequiredFieldLabel>Correo</RequiredFieldLabel><input name="email" type="email" required /></label>
+        <label><RequiredFieldLabel>WhatsApp o telefono</RequiredFieldLabel><input name="phone" type="tel" required /></label><label><RequiredFieldLabel>Ciudad</RequiredFieldLabel><input name="city" defaultValue="Manta" required /></label>
+        <label><OptionalFieldLabel>Rol o fortaleza</OptionalFieldLabel><input name="memberRole" /></label><label><RequiredFieldLabel>Reto</RequiredFieldLabel><select name="challengeId" required defaultValue=""><option value="" disabled>Selecciona un reto</option>{dashboard.challenges.filter((challenge) => challenge.active).map((challenge) => <option key={challenge.id} value={challenge.id}>{challenge.title}</option>)}</select></label>
       </div>
       <button className="system-button system-button-primary" type="submit">Crear equipo</button>
     </form>
@@ -277,6 +281,7 @@ function TeamsSection({ dashboard, mutate, reload }: AdminSectionProps & { reloa
   return (
     <div className="admin-stack">
       <ManualTeamForm dashboard={dashboard} reload={reload} />
+      <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Correo de confirmacion</p><h2>Outbox de registros</h2></div><span>{dashboard.registrationEmailOutbox.filter((item) => item.status === 'sent').length}/{dashboard.registrationEmailOutbox.length} enviados</span></div><div className="responsive-table"><table><thead><tr><th>Equipo</th><th>Estado</th><th>Intentos</th><th>Proximo intento</th><th>Accion</th></tr></thead><tbody>{dashboard.registrationEmailOutbox.map((item) => <tr key={item.id}><td>{dashboard.teams.find((team) => team.id === item.team_id)?.name ?? 'Equipo'}</td><td><span className={`status-pill status-${item.status}`}>{item.status}</span>{item.last_error_code ? <small>{item.last_error_code}</small> : null}</td><td>{item.attempts}</td><td>{formatEcuadorDateTime(item.next_attempt_at)}</td><td>{item.status !== 'sent' ? <button className="system-link-button" type="button" onClick={() => void mutate({ action: 'retry_registration_email', outboxId: item.id })}>Reintentar</button> : formatEcuadorDateTime(item.sent_at)}</td></tr>)}</tbody></table></div></section>
       <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Registro</p><h2>Equipos y participantes</h2></div><span>{dashboard.teams.length} equipos</span></div><div className="responsive-table"><table><thead><tr><th>Equipo</th><th>Reto</th><th>Integrantes</th><th>Contacto</th><th>Estado</th></tr></thead><tbody>{dashboard.teams.map((team) => {
         const teamChallenge = dashboard.teamChallenges.find((item) => item.team_id === team.id)
         const challenge = dashboard.challenges.find((item) => item.id === teamChallenge?.challenge_id)
@@ -320,7 +325,7 @@ function AssignmentsSection({ dashboard, mutate }: AdminSectionProps) {
 
 function ProjectsSection({ dashboard, mutate }: AdminSectionProps) {
   const teamName = (teamId: string) => dashboard.teams.find((team) => team.id === teamId)?.name ?? 'Equipo'
-  return <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Entregas</p><h2>Proyectos y vitrina</h2></div><span>Publica solo entregas verificadas</span></div><div className="responsive-table"><table><thead><tr><th>Equipo / proyecto</th><th>Descripcion</th><th>Enlaces</th><th>Estado</th><th>Accion</th></tr></thead><tbody>{dashboard.submissions.map((submission) => <tr key={submission.id}><td><strong>{teamName(submission.team_id)}</strong><small>{submission.project_name || 'Sin nombre'}</small></td><td>{submission.short_description || 'Borrador incompleto'}</td><td><div className="table-links">{submission.demo_url ? <a href={submission.demo_url} target="_blank" rel="noreferrer">Demo</a> : null}{submission.repository_url ? <a href={submission.repository_url} target="_blank" rel="noreferrer">Codigo</a> : null}</div></td><td><span className={`status-pill status-${submission.status}`}>{submission.status}</span></td><td><select value={submission.status} onChange={(event) => void mutate({ action: 'set_submission_status', submissionId: submission.id, status: event.target.value as Tables<'project_submissions'>['status'] })}><option value="draft">Borrador</option><option value="submitted">Enviado</option><option value="published">Publicado</option></select></td></tr>)}</tbody></table></div></section>
+  return <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Entregas</p><h2>Proyectos y vitrina</h2></div><span>Publica solo entregas verificadas</span></div><div className="responsive-table"><table><thead><tr><th>Equipo / proyecto</th><th>Descripcion</th><th>Enlaces</th><th>Ultimo envio</th><th>Estado</th><th>Accion</th></tr></thead><tbody>{dashboard.submissions.map((submission) => <tr key={submission.id}><td><strong>{teamName(submission.team_id)}</strong><small>{submission.project_name || 'Sin nombre'}</small></td><td>{submission.short_description || 'Borrador incompleto'}</td><td><div className="table-links">{submission.demo_url ? <a href={submission.demo_url} target="_blank" rel="noreferrer">Demo</a> : null}{submission.repository_url ? <a href={submission.repository_url} target="_blank" rel="noreferrer">Codigo</a> : null}</div></td><td>{formatEcuadorDateTime(submission.submitted_at)}</td><td><span className={`status-pill status-${submission.status}`}>{submission.status}</span></td><td><select value={submission.status} onChange={(event) => void mutate({ action: 'set_submission_status', submissionId: submission.id, status: event.target.value as Tables<'project_submissions'>['status'] })}><option value="draft">Borrador</option><option value="submitted">Enviado</option><option value="published">Publicado</option></select></td></tr>)}</tbody></table></div></section>
 }
 
 function ResultsSection({ dashboard }: { dashboard: AdminDashboardData }) {

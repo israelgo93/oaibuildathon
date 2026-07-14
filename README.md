@@ -12,7 +12,7 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 - Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
-La siguiente iteracion aun **no** esta implementada: incluye obligatorios visibles, entrega final estricta, selector de tecnologias, deadline por reto, restricciones adicionales para jurado y correo de confirmacion con Resend. No debe confundirse ese alcance con el comportamiento desplegado.
+La siguiente iteracion esta **implementada y verificada localmente**, pero todavia no esta desplegada: incluye obligatorios visibles, entrega final estricta, selector de tecnologias, deadline por reto, restricciones adicionales para jurado y correo de confirmacion con Resend. La migracion nueva aun debe aplicarse y Resend debe instalarse/configurarse en Vercel antes de describir estas capacidades como disponibles en produccion.
 
 ## Capacidades
 
@@ -28,7 +28,7 @@ La siguiente iteracion aun **no** esta implementada: incluye obligatorios visibl
 - Rubrica inicial de 100 puntos orientada a construccion.
 - Auditoria de mutaciones de gestion y staff, y validacion Zod en las Functions.
 
-## Limites actuales relevantes
+## Limites actuales de produccion
 
 - El panel modifica el evento mas reciente, pero no crea eventos.
 - Existe `events.submissions_close_at`, aunque la API de equipos todavia no bloquea por esa hora y los retos no tienen deadline propio.
@@ -37,7 +37,7 @@ La siguiente iteracion aun **no** esta implementada: incluye obligatorios visibl
 - El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
 - No existe integracion de correo transaccional. El codigo de equipo se muestra al terminar el registro.
 
-El detalle y los criterios para cerrar estas brechas estan en la documentacion de estado y en el prompt de siguiente iteracion.
+Supabase ya contiene el deadline por reto, el outbox y las invariantes nuevas. El codigo local cierra las brechas de interfaz y API, pero sigue pendiente de despliegue y verificacion en Vercel. El detalle verificable esta en la documentacion de estado y en el prompt de siguiente iteracion.
 
 ## Rutas
 
@@ -81,6 +81,7 @@ La clave legada `service_role` no es necesaria para esta implementacion. Si un p
 - Three.js para la escena ambiental de la landing.
 - Vercel Functions para la API.
 - Supabase Postgres y Supabase Auth.
+- Resend para correo transaccional mediante outbox (codigo listo; proveedor y variables pendientes).
 - Zod para contratos de entrada.
 - Vitest para reglas de dominio.
 
@@ -134,6 +135,9 @@ El historial aplicado es:
 1. `supabase/migrations/20260713232939_buildathon_initial_schema.sql`: esquema, RLS, funciones transaccionales, retos iniciales y rubrica.
 2. `supabase/migrations/20260713233118_harden_security_and_indexes.sql`: endurecimiento de funciones e indices para claves foraneas.
 3. `supabase/migrations/20260714000143_fix_profile_role_trigger.sql`: corrige el trigger de perfiles para altas Auth con rol explicito.
+4. `supabase/migrations/20260714131805_complete_submission_deadlines_and_email_outbox.sql`: deadline por reto, invariantes de entrega final, restriccion SQL de jurado y outbox transaccional de registro.
+5. `supabase/migrations/20260714131931_index_registration_email_outbox_team_event.sql`: indice compuesto para la clave foranea del outbox.
+6. `supabase/migrations/20260714132323_fix_assignment_role_trigger.sql`: corrige el trigger compartido para asignar jurados y mentores sin acceder a columnas de la otra tabla.
 
 No edites migraciones aplicadas; crea una nueva con:
 
@@ -163,6 +167,10 @@ Copia `.env.example` y completa solo el archivo local ignorado por Git:
 | `TEAM_SESSION_SECRET` | Servidor | HMAC de sesiones de equipo |
 | `VITE_TURNSTILE_SITE_KEY` | Navegador, opcional | Widget anti-bots |
 | `TURNSTILE_SECRET_KEY` | Servidor, opcional | Verificacion anti-bots |
+| `RESEND_API_KEY` | Servidor | Credencial de Resend; instalar mediante Vercel Marketplace |
+| `RESEND_FROM` | Servidor | Remitente sobre dominio verificado |
+| `RESEND_REPLY_TO` | Servidor | Correo real de soporte u organizacion |
+| `APP_BASE_URL` | Servidor | URL canonica HTTPS usada en correos; produccion usa `https://oaibuildathon.vercel.app` |
 
 La integracion oficial de Supabase en Vercel genera `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`. Para esta aplicacion Vite crea en Vercel los alias `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los valores publicos correspondientes, y genera `TEAM_SESSION_SECRET` de forma independiente. Nunca crees un alias `VITE_` para `SUPABASE_SECRET_KEY`.
 
@@ -239,9 +247,9 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 7. Administracion verifica demos, publica proyectos y revisa el ranking privado.
 8. `results_public` puede configurarse, pero la exposicion publica de resultados requiere una implementacion adicional.
 
-## Correo de registro: recomendacion pendiente
+## Correo de registro con Resend
 
-La opcion recomendada para la siguiente iteracion es Resend mediante su integracion nativa de Vercel Marketplace. Todavia no existe codigo, plantilla, outbox ni variables de Resend en este repositorio. Al implementarlo, `RESEND_API_KEY` debe permanecer exclusivamente en servidor, el dominio remitente debe verificarse y un fallo de correo nunca debe revertir ni duplicar el registro del equipo. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+El repositorio ya incluye el SDK de Resend, plantilla HTML/texto, idempotencia, reintentos clasificados y un outbox creado en la misma transaccion del registro. Un fallo de correo no revierte ni duplica el equipo, y administracion puede reintentar pendientes. Para habilitar el envio, instala/autoriza Resend desde Vercel Marketplace, configura `RESEND_FROM` y `RESEND_REPLY_TO`, y verifica SPF/DKIM del dominio remitente. Preview debe usar configuracion separada para no enviar correos reales. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
 ## Assets de la landing
 

@@ -4,6 +4,18 @@ Ultima verificacion tecnica: 14 de julio de 2026.
 
 Este documento separa el comportamiento disponible del alcance aprobado para una siguiente iteracion. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
 
+## Implementacion con esquema desplegado y aplicacion pendiente
+
+El arbol local completa el alcance de `NEXT_ITERATION_PROMPT.md` y fue verificado con TypeScript estricto, 34 pruebas y build de produccion. La base remota ya contiene el esquema nuevo, pero la experiencia completa todavia no esta disponible porque:
+
+- `20260714131805_complete_submission_deadlines_and_email_outbox.sql`, `20260714131931_index_registration_email_outbox_team_event.sql` y `20260714132323_fix_assignment_role_trigger.sql` ya se aplicaron y verificaron en el proyecto remoto;
+- `src/types/database.generated.ts` se regenero desde ese esquema y se reconcilio con `src/types/database.ts`;
+- el codigo no se ha desplegado;
+- Vercel no lista `RESEND_API_KEY`; falta instalar/autorizar Resend, verificar el dominio remitente y configurar las variables por entorno;
+- Docker Desktop no estuvo disponible para `supabase db reset`, y el CLI local no tenia sesion para enlazar el proyecto. El proyecto, sus seis migraciones y los asesores posteriores al DDL si se verificaron mediante MCP.
+
+La implementacion local incluye asteriscos accesibles, borrador incompleto, envio final estricto, tecnologias tipadas, deadline efectivo, ocultamiento de borradores al jurado, `submitted_at` visible, outbox transaccional, idempotencia de Resend y reintento administrativo. No mezclar este bloque con la matriz desplegada que sigue.
+
 ## Entornos conectados
 
 - Repositorio: `israelgo93/oaibuildathon`.
@@ -78,6 +90,9 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto y una 
 1. `20260713232939_buildathon_initial_schema.sql`: entidades, funciones, RLS, datos iniciales y rubrica.
 2. `20260713233118_harden_security_and_indexes.sql`: endurecimiento de funciones e indices.
 3. `20260714000143_fix_profile_role_trigger.sql`: evita insertar un perfil con rol nulo durante el alta Auth y permite crear correctamente administradores, jurados y mentores.
+4. `20260714131805_complete_submission_deadlines_and_email_outbox.sql`: agrega `challenges.submission_deadline_at`, `registration_email_outbox`, restricciones de entrega final, preservacion de `submitted_at` al publicar y bloqueo SQL de evaluaciones sobre borradores.
+5. `20260714131931_index_registration_email_outbox_team_event.sql`: agrega el indice compuesto que cubre la clave foranea del outbox.
+6. `20260714132323_fix_assignment_role_trigger.sql`: corrige el trigger de asignaciones compartido y permite validar jurados y mentores contra su columna correspondiente.
 
 No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1 migration new nombre_descriptivo` y se reconcilia con el historial remoto.
 
@@ -90,8 +105,8 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 - Los datos personales no se publican en la vitrina.
 - La creacion de staff y las acciones de `/api/admin/manage` dejan auditoria. El registro manual que reutiliza `/api/registrations` todavia no crea una entrada de auditoria administrativa.
 
-## Proxima iteracion aprobada, aun no implementada
+## Iteracion aprobada, implementada localmente
 
-El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado esta definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md).
+El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado esta definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) y ya tiene implementacion local.
 
-No debe marcarse como implementado hasta que existan migraciones, tipos, validacion de servidor, UI, pruebas, variables documentadas y verificacion desplegada.
+No debe marcarse como aplicacion desplegada hasta publicar y verificar los flujos en produccion. El correo puede desplegarse en modo degradado seguro, pero no se enviara hasta configurar Resend.

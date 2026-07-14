@@ -28,6 +28,7 @@ La Buildathon esta orientada a construir y demostrar un producto funcional. Las 
 - `server/`: utilidades exclusivas de servidor.
 - `supabase/migrations/`: esquema, funciones, RLS y datos iniciales.
 - `src/types/database.ts`: tipos de base de datos usados por cliente y servidor.
+- `server/registration-email.ts`: plantilla, idempotencia, clasificacion de reintentos y procesamiento del outbox de registro.
 
 ## Seguridad obligatoria
 
@@ -90,10 +91,9 @@ const team = teamRaw as Tables<'teams'>
 ## Estado actual que no debe sobreestimarse
 
 - Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
-- El cierre global `events.submissions_close_at` existe, pero la API de equipo todavia no lo hace cumplir por hora.
-- Los retos no tienen deadline propio.
-- El jurado actualmente recibe borradores y no muestra `submitted_at`.
-- No existe integracion Resend ni otro correo transaccional.
+- Supabase produccion ya aplica `20260714131805_complete_submission_deadlines_and_email_outbox.sql`, `20260714131931_index_registration_email_outbox_team_event.sql` y `20260714132323_fix_assignment_role_trigger.sql`; la aplicacion conserva el contrato anterior hasta desplegar y verificar el codigo.
+- El arbol local ya aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`; no describir la experiencia completa como produccion hasta verificar el despliegue.
+- El codigo local incluye Resend y outbox, pero la integracion Marketplace, el dominio verificado y las variables de produccion siguen siendo configuracion manual pendiente.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 
 Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.

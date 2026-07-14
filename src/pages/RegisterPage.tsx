@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { apiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
+import { effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
 import type { PublicEventConfig, RegistrationInput, RegistrationMemberInput, RegistrationResult } from '@/types/api'
 
 const emptyMember = (isPrimaryContact: boolean): RegistrationMemberInput => ({
@@ -43,7 +45,7 @@ export function RegisterPage() {
     apiRequest<PublicEventConfig>('/api/public-config')
       .then((data) => {
         setConfig(data)
-        setChallengeId(data.challenges[0]?.id ?? '')
+        setChallengeId('')
       })
       .catch((error: unknown) => setMessage(errorMessage(error)))
       .finally(() => setLoading(false))
@@ -133,6 +135,7 @@ export function RegisterPage() {
       {config && !config.event.registration_open ? <StatusMessage kind="info">El registro esta cerrado por el momento.</StatusMessage> : null}
       {config && config.event.registration_open ? (
         <form className="system-form registration-form" onSubmit={(event) => void submitRegistration(event)}>
+          <RequiredFieldsLegend />
           <section className="system-card form-section">
             <div className="section-number">01</div>
             <div className="form-section-heading">
@@ -140,9 +143,9 @@ export function RegisterPage() {
               <p>Esta informacion se usara en el panel, las demos y la vitrina publica.</p>
             </div>
             <div className="form-grid">
-              <label>Nombre del equipo<input name="teamName" required maxLength={80} /></label>
-              <label>Organizacion o comunidad<input name="organization" maxLength={120} placeholder="Opcional" /></label>
-              <label>Ciudad base<input name="teamCity" required maxLength={80} defaultValue="Manta" /></label>
+              <label><RequiredFieldLabel>Nombre del equipo</RequiredFieldLabel><input name="teamName" required maxLength={80} /></label>
+              <label><OptionalFieldLabel>Organizacion o comunidad</OptionalFieldLabel><input name="organization" maxLength={120} /></label>
+              <label><RequiredFieldLabel>Ciudad base</RequiredFieldLabel><input name="teamCity" required maxLength={80} defaultValue="Manta" /></label>
             </div>
             <label className="honeypot" aria-hidden="true">Sitio web<input name="website" tabIndex={-1} autoComplete="off" /></label>
           </section>
@@ -159,11 +162,11 @@ export function RegisterPage() {
                   <legend>{index === 0 ? 'Contacto principal' : `Participante ${index + 1}`}</legend>
                   {index > 0 ? <button className="remove-member" type="button" onClick={() => removeMember(index)}>Quitar</button> : null}
                   <div className="form-grid">
-                    <label>Nombre completo<input required maxLength={120} value={member.fullName} onChange={(event) => updateMember(index, { fullName: event.target.value })} /></label>
-                    <label>Correo<input required type="email" maxLength={254} value={member.email} onChange={(event) => updateMember(index, { email: event.target.value })} /></label>
-                    <label>WhatsApp o telefono<input required type="tel" maxLength={30} value={member.phone} onChange={(event) => updateMember(index, { phone: event.target.value })} /></label>
-                    <label>Ciudad<input required maxLength={80} value={member.city} onChange={(event) => updateMember(index, { city: event.target.value })} /></label>
-                    <label>Rol o fortaleza<input maxLength={80} placeholder="Desarrollo, diseno, producto..." value={member.memberRole} onChange={(event) => updateMember(index, { memberRole: event.target.value })} /></label>
+                    <label><RequiredFieldLabel>Nombre completo</RequiredFieldLabel><input required maxLength={120} value={member.fullName} onChange={(event) => updateMember(index, { fullName: event.target.value })} /></label>
+                    <label><RequiredFieldLabel>Correo</RequiredFieldLabel><input required type="email" maxLength={254} value={member.email} onChange={(event) => updateMember(index, { email: event.target.value })} /></label>
+                    <label><RequiredFieldLabel>WhatsApp o telefono</RequiredFieldLabel><input required type="tel" maxLength={30} value={member.phone} onChange={(event) => updateMember(index, { phone: event.target.value })} /></label>
+                    <label><RequiredFieldLabel>Ciudad</RequiredFieldLabel><input required maxLength={80} value={member.city} onChange={(event) => updateMember(index, { city: event.target.value })} /></label>
+                    <label><OptionalFieldLabel>Rol o fortaleza</OptionalFieldLabel><input maxLength={80} placeholder="Desarrollo, diseno, producto..." value={member.memberRole} onChange={(event) => updateMember(index, { memberRole: event.target.value })} /></label>
                   </div>
                 </fieldset>
               ))}
@@ -175,20 +178,21 @@ export function RegisterPage() {
 
           <section className="system-card form-section">
             <div className="section-number">03</div>
-            <div className="form-section-heading">
-              <h2>Elige un reto</h2>
+            <fieldset className="challenge-fieldset" aria-required="true">
+              <legend><RequiredFieldLabel>Elige un reto</RequiredFieldLabel></legend>
               <p>El reto define el contexto de construccion; podras explicar la solucion en la entrega.</p>
-            </div>
-            <div className="challenge-grid">
-              {config.challenges.map((challenge) => (
-                <label className={`challenge-option${challengeId === challenge.id ? ' selected' : ''}`} key={challenge.id}>
-                  <input type="radio" name="challenge" value={challenge.id} checked={challengeId === challenge.id} onChange={() => setChallengeId(challenge.id)} />
-                  <strong>{challenge.title}</strong>
-                  <span>{challenge.description}</span>
-                  {challenge.requirements ? <small>{challenge.requirements}</small> : null}
-                </label>
-              ))}
-            </div>
+              <div className="challenge-grid">
+                {config.challenges.map((challenge) => (
+                  <label className={`challenge-option${challengeId === challenge.id ? ' selected' : ''}`} key={challenge.id}>
+                    <input required type="radio" name="challenge" value={challenge.id} checked={challengeId === challenge.id} onChange={() => setChallengeId(challenge.id)} />
+                    <strong>{challenge.title}</strong>
+                    <span>{challenge.description}</span>
+                    {challenge.requirements ? <small>{challenge.requirements}</small> : null}
+                    <small>Entrega hasta {formatEcuadorDateTime(effectiveSubmissionDeadline(challenge.submission_deadline_at, config.event.submissions_close_at))}</small>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </section>
 
           <TurnstileWidget />

@@ -1,4 +1,5 @@
 import type { Tables, TablesUpdate } from '../src/types/database.js'
+import { isDeadlineReached } from '../src/lib/dates.js'
 import { clearTeamSessionCookie, createTeamToken, hashTeamToken, setTeamSessionCookie, TEAM_COOKIE_NAME } from '../server/session.js'
 import { getTeamByToken, getTeamPortalData } from '../server/team-data.js'
 import { HttpError, parseJsonBody, readCookie, requireMethod, setPrivateResponse, withErrorHandling } from '../server/http.js'
@@ -49,6 +50,9 @@ export default withErrorHandling(async (request, response) => {
     const portal = await getTeamPortalData(team)
 
     if (!portal.event.submissions_open) throw new HttpError(409, 'La etapa de entregas esta cerrada')
+    if (isDeadlineReached(portal.submissionDeadlineAt)) {
+      throw new HttpError(409, 'El deadline de este reto ya finalizo')
+    }
     if (portal.submission.status === 'published') throw new HttpError(409, 'El proyecto publicado debe ser reabierto por administracion')
 
     const values: TablesUpdate<'project_submissions'> = {

@@ -1,5 +1,6 @@
 import type { TeamPortalData } from '../src/types/api.js'
 import type { Tables } from '../src/types/database.js'
+import { effectiveSubmissionDeadline } from '../src/lib/dates.js'
 import { HttpError } from './http.js'
 import { hashTeamToken } from './session.js'
 import { getServerSupabase } from './supabase.js'
@@ -78,7 +79,12 @@ export async function getTeamPortalData(team: Tables<'teams'>): Promise<TeamPort
       title: challenge.title,
       description: challenge.description,
       requirements: challenge.requirements,
+      submission_deadline_at: challenge.submission_deadline_at,
     },
+    submissionDeadlineAt: effectiveSubmissionDeadline(
+      challenge.submission_deadline_at,
+      event.submissions_close_at,
+    ),
     submission: {
       id: submission.id,
       project_name: submission.project_name,

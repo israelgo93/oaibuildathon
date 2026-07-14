@@ -1,6 +1,24 @@
 # Prompt para la siguiente iteracion
 
-Usa el siguiente texto como solicitud inicial en una conversacion nueva. Es autocontenido y describe funcionalidades **pendientes**; no asumas que ya existen.
+## Estado de ejecucion al 14 de julio de 2026
+
+Este alcance ya se implemento en el arbol local. El texto original se conserva debajo como contrato de aceptacion y como guia para la verificacion final.
+
+- [x] Indicadores obligatorios accesibles en registro publico y manual.
+- [x] Borrador incompleto y envio final estricto con demo y repositorio.
+- [x] Selector tipado de tecnologias, `Otras`, normalizacion y limites.
+- [x] Migracion creada para deadline por reto, invariantes SQL y outbox.
+- [x] Deadline efectivo reforzado en servidor y visible en `America/Guayaquil (UTC-5)`.
+- [x] Borradores ocultos y rubrica deshabilitada para el jurado.
+- [x] Resend con HTML/texto, idempotencia, clasificacion de reintentos y accion administrativa.
+- [x] Typecheck, 34 pruebas, build y comprobacion de secretos del bundle local.
+- [x] Aplicar las migraciones remotas y reconciliar tipos generados contra el esquema desplegado.
+- [ ] Instalar/autorizar Resend en Vercel, verificar dominio y configurar variables por entorno.
+- [ ] Desplegar y verificar los flujos reales en produccion.
+
+Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue; no describen el arbol local ya modificado.
+
+El siguiente texto fue la solicitud autocontenida de la iteracion y describe funcionalidades que estaban **pendientes** al redactarse. Usalo ahora como contrato de verificacion, no como fuente del estado desplegado.
 
 ---
 
