@@ -100,8 +100,8 @@ const agenda: AgendaItem[] = [
   },
   {
     time: '11:30—13:00',
-    title: 'Workshop y retos',
-    description: 'Tecnologías, desafíos y acompañamiento para despegar con una dirección clara.',
+    title: 'Workshop técnico y retos',
+    description: 'Tecnologías, experiencias y prácticas para construir con Codex. El bloque cierra con el lanzamiento oficial de los retos y el inicio de la construcción.',
   },
   {
     time: '13:00—14:00',
@@ -109,7 +109,7 @@ const agenda: AgendaItem[] = [
     description: 'Pausa para conectar, contrastar ideas y recargar energía.',
   },
   {
-    time: '14:00—15:00',
+    time: '14:00—16:00',
     title: 'Sprint de construcción',
     description: 'Codex, código, iteración y mentoría para llevar el prototipo a una versión demostrable.',
   },
