@@ -1,4 +1,4 @@
 interface:
   display_name: "Buildathon Operations"
-  short_description: "Operate the team, jury, mentor, and admin platform"
-  default_prompt: "Use $buildathon-operations to modify or operate the Buildathon system safely."
+  short_description: "Operate teams, submissions, deadlines, email, and judging"
+  default_prompt: "Use $buildathon-operations to modify or operate the Buildathon system safely, separating deployed behavior from pending scope."

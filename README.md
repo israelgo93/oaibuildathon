@@ -1,8 +1,18 @@
 # OpenAI Build Week Manta
 
-Landing y plataforma operativa para la Community Buildathon de OpenAI Build Week en Manta, Ecuador. El sistema acompana el evento completo: registro global de equipos, seleccion de retos, entrega de demos, mentoria, jurado, rubrica configurable, resultados y vitrina publica.
+Landing y plataforma operativa para la Community Buildathon de OpenAI Build Week en Manta, Ecuador. El sistema acompana el evento: registro global de equipos, seleccion de retos, entrega de demos, mentoria, jurado, rubrica configurable, ranking privado y vitrina publica.
 
 La experiencia conserva la landing cinematografica existente. La integracion visible se limita al boton **Registra tu equipo** y a una seccion de proyectos que solo aparece cuando administracion publica entregas verificadas.
+
+## Estado verificado
+
+- Produccion: `https://oaibuildathon.vercel.app`.
+- Repositorio: `israelgo93/oaibuildathon`.
+- Supabase: proyecto `buildathon`, referencia publica `iexmlbslfnckrdtkwuir`.
+- Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+- Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+
+La siguiente iteracion aun **no** esta implementada: incluye obligatorios visibles, entrega final estricta, selector de tecnologias, deadline por reto, restricciones adicionales para jurado y correo de confirmacion con Resend. No debe confundirse ese alcance con el comportamiento desplegado.
 
 ## Capacidades
 
@@ -12,11 +22,22 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Portal para guardar el proyecto como borrador o enviarlo al jurado.
 - Vitrina publica de proyectos aprobados en la landing.
 - Supabase Auth para administradores, jurados y mentores.
-- Panel administrativo para evento, etapas, fechas, limites, retos, rubrica, equipos, participantes, staff, asignaciones, proyectos y ranking.
+- Panel administrativo para el evento existente mas reciente, etapas, fechas globales, limites, retos, rubrica, equipos, participantes, staff, asignaciones, proyectos y ranking privado.
 - Panel de jurado con formulario dinamico de calificacion.
 - Panel de mentor con equipos, integrantes, reto, avance y enlaces.
 - Rubrica inicial de 100 puntos orientada a construccion.
-- Auditoria de acciones privilegiadas y validacion Zod en las Functions.
+- Auditoria de mutaciones de gestion y staff, y validacion Zod en las Functions.
+
+## Limites actuales relevantes
+
+- El panel modifica el evento mas reciente, pero no crea eventos.
+- Existe `events.submissions_close_at`, aunque la API de equipos todavia no bloquea por esa hora y los retos no tienen deadline propio.
+- El jurado recibe sus equipos asignados incluso si la entrega sigue en borrador; `submitted_at` no se muestra ni se exige una entrega final antes de calificar.
+- Tecnologias se captura como texto libre; para enviar basta demo **o** repositorio.
+- El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
+- No existe integracion de correo transaccional. El codigo de equipo se muestra al terminar el registro.
+
+El detalle y los criterios para cerrar estas brechas estan en la documentacion de estado y en el prompt de siguiente iteracion.
 
 ## Rutas
 
@@ -108,7 +129,13 @@ npx supabase@2.109.1 link --project-ref TU_PROJECT_REF
 npx supabase@2.109.1 db push
 ```
 
-La migracion `supabase/migrations/20260713232939_buildathon_initial_schema.sql` crea el esquema, RLS, funciones transaccionales, retos iniciales y rubrica. La migracion `20260713233118_harden_security_and_indexes.sql` restringe la funcion automatica de RLS y agrega indices para las claves foraneas. No edites migraciones aplicadas; crea una nueva con:
+El historial aplicado es:
+
+1. `supabase/migrations/20260713232939_buildathon_initial_schema.sql`: esquema, RLS, funciones transaccionales, retos iniciales y rubrica.
+2. `supabase/migrations/20260713233118_harden_security_and_indexes.sql`: endurecimiento de funciones e indices para claves foraneas.
+3. `supabase/migrations/20260714000143_fix_profile_role_trigger.sql`: corrige el trigger de perfiles para altas Auth con rol explicito.
+
+No edites migraciones aplicadas; crea una nueva con:
 
 ```powershell
 npx supabase@2.109.1 migration new nombre_descriptivo
@@ -161,7 +188,14 @@ Ejecuta:
 npm run admin:bootstrap
 ```
 
-Elimina esos tres valores del entorno despues de confirmar el acceso. Los siguientes usuarios se crean desde `/admin`.
+Antes de ejecutarlo, confirma que `SUPABASE_URL` y `SUPABASE_SECRET_KEY` corresponden al proyecto esperado. Despues:
+
+1. Inicia sesion en `/login` con el usuario creado.
+2. Confirma el rol `admin` y el acceso real a `/api/admin/dashboard`.
+3. Elimina `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_PASSWORD` y `BOOTSTRAP_ADMIN_NAME` de todos los entornos.
+4. Rota o elimina cualquier cuenta temporal de prueba que ya no sea necesaria.
+
+Nunca documentes ni publiques las credenciales del administrador inicial. Los siguientes usuarios se crean desde `/admin`.
 
 ### 5. Comprobaciones de base de datos
 
@@ -174,6 +208,16 @@ npx supabase@2.109.1 db lint --local
 ```
 
 Despues de enlazar produccion, revisa los asesores de seguridad y rendimiento en Supabase Dashboard o mediante las herramientas del proyecto.
+
+### 6. Tipos de base de datos
+
+El codigo de la aplicacion importa los tipos revisados desde `src/types/database.ts`. El comando:
+
+```powershell
+npm run supabase:types
+```
+
+genera `src/types/database.generated.ts`. No sustituye automaticamente el archivo usado por la aplicacion: compara ambos, incorpora las tablas o columnas nuevas en `database.ts` y ejecuta el typecheck antes de confirmar el cambio.
 
 ## Despliegue en Vercel
 
@@ -192,8 +236,22 @@ Despues de enlazar produccion, revisa los asesores de seguridad y rendimiento en
 4. Los equipos construyen y completan su entrega.
 5. Administracion abre la etapa de calificacion.
 6. Los jurados califican todos los criterios de sus equipos.
-7. Administracion verifica demos, publica proyectos y revisa el ranking.
-8. Solo si corresponde, activa resultados publicos.
+7. Administracion verifica demos, publica proyectos y revisa el ranking privado.
+8. `results_public` puede configurarse, pero la exposicion publica de resultados requiere una implementacion adicional.
+
+## Correo de registro: recomendacion pendiente
+
+La opcion recomendada para la siguiente iteracion es Resend mediante su integracion nativa de Vercel Marketplace. Todavia no existe codigo, plantilla, outbox ni variables de Resend en este repositorio. Al implementarlo, `RESEND_API_KEY` debe permanecer exclusivamente en servidor, el dominio remitente debe verificarse y un fallo de correo nunca debe revertir ni duplicar el registro del equipo. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+
+## Assets de la landing
+
+Los originales se conservan en `Assets/` y el navegador consume las versiones optimizadas de `public/assets/`. Para regenerar derivados:
+
+```powershell
+npm run optimize:assets
+```
+
+Revisa `Assets/Generated/README.md` antes de sustituir archivos. El video orbital de runtime es `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`; la copia fuente esta en `Assets/video-orbital.mp4`.
 
 ## Rubrica inicial
 
@@ -242,6 +300,7 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 |   |-- judge/
 |   `-- mentor/
 |-- server/                       # Seguridad, Auth, validacion y sesiones
+|-- docs/                         # Estado verificado y prompt de siguiente iteracion
 |-- src/
 |   |-- components/
 |   |-- lib/
@@ -256,6 +315,9 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 ## Documentacion para agentes
 
 - `AGENTS.md`: reglas de implementacion y seguridad.
+- `docs/IMPLEMENTATION_STATUS.md`: comportamiento desplegado, limitaciones y migraciones.
+- `docs/NEXT_ITERATION_PROMPT.md`: solicitud autocontenida para el siguiente bloque de implementacion.
 - `.agents/skills/landing-maintenance`: mapa y limites de la landing.
 - `.agents/skills/buildathon-operations`: dominio, esquema y flujos operativos.
 - `PRODUCT.md`: direccion visual, tono y accesibilidad.
+- `VIDEO_SCROLL_PLAN.md`: contrato tecnico del video orbital sincronizado con scroll.

@@ -8,6 +8,10 @@
 - Three.js ambient layer: `src/components/SpaceField.tsx`.
 - Conditional public projects: `src/components/ShowcaseSection.tsx` using `/api/showcase`.
 - Operational UI CSS: `src/system.css`; do not mix dashboard selectors into landing sections.
+- Event dates, countdown target, external URLs, prizes, model names, agenda, and most narrative copy are maintained in `src/App.tsx`.
+- Orbital runtime video: `public/assets/video-orbital.mp4`, requested as `/assets/video-orbital.mp4`.
+- Orbital source copy: `Assets/video-orbital.mp4`.
+- Image sources live under `Assets/`; browser-ready derivatives live under `public/assets/` and are regenerated with `npm run optimize:assets` according to `Assets/Generated/README.md`.
 
 ## Narrative order
 
@@ -29,7 +33,10 @@
 - Motion supports narrative and never hides information.
 - Assets use `srcSet` at 1280, 2560, and 3840 where available.
 - Mobile changes begin at 760px; broad tablet changes begin at 1100px.
+- `prefers-reduced-motion` removes the scroll-scrubbed orbital video and preserves a static, usable hero.
 
 ## Allowed system integration
 
-The landing may expose one direct system entry, `Registra tu equipo`, and a public showcase backed by published submissions. Registration forms, authentication, administration, scoring, and mentoring belong to their dedicated routes.
+The landing may expose one direct system entry, `Registra tu equipo`, and a public showcase backed by `/api/showcase`. The endpoint selects published submissions from the most recent event with showcase visibility enabled and must project only approved project fields.
+
+Registration forms, authentication, team recovery, required-field rules, deadlines, transactional email, administration, scoring, and mentoring belong to their dedicated routes. `results_public` currently has no landing section or public endpoint; do not imply that rankings are public merely because the flag exists.

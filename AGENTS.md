@@ -15,6 +15,8 @@ La Buildathon esta orientada a construir y demostrar un producto funcional. Las 
 - Para registro, Supabase, Vercel Functions o paneles, usa `.agents/skills/buildathon-operations/SKILL.md`.
 - Lee `PRODUCT.md` para marca y accesibilidad.
 - Lee `README.md` para instalacion, variables y despliegue.
+- Lee `docs/IMPLEMENTATION_STATUS.md` para distinguir lo desplegado de lo pendiente.
+- Si la tarea corresponde a obligatorios, entrega final, tecnologias, deadlines, jurado o correo, toma `docs/NEXT_ITERATION_PROMPT.md` como alcance aprobado y vuelve a verificar el codigo antes de asumir su estado.
 
 ## Arquitectura
 
@@ -31,10 +33,13 @@ La Buildathon esta orientada a construir y demostrar un producto funcional. Las 
 
 - El navegador solo puede usar `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - `SUPABASE_SECRET_KEY` y `TEAM_SESSION_SECRET` son exclusivos de Vercel Functions. Nunca usar el prefijo `VITE_` en secretos.
+- Cualquier secreto de correo, incluido `RESEND_API_KEY`, tambien es exclusivo de servidor y nunca usa el prefijo `VITE_`.
 - Nunca versionar `.env`, `.env.local`, tokens, claves, contrasenas ni respuestas que las contengan.
 - Mantener RLS habilitado y revisar grants de cada tabla o funcion nueva.
 - Validar entradas publicas con Zod. No devolver errores internos o detalles SQL al publico.
 - Los tokens de equipos se guardan como HMAC; la cookie debe ser HTTP-only, SameSite y Secure en produccion.
+- El codigo de recuperacion nunca se incluye en query strings, logs, analitica ni URLs de correo. Un fallo de correo no puede revertir ni duplicar un registro valido.
+- No crear endpoints publicos capaces de enviar destinatarios, asuntos o HTML arbitrarios.
 - Toda mutacion administrativa debe verificar el rol en servidor y dejar auditoria cuando corresponda.
 
 ## TypeScript y JavaScript
@@ -68,7 +73,9 @@ const team = teamRaw as Tables<'teams'>
 3. Crear migraciones con `npx supabase@2.109.1 migration new nombre_descriptivo`.
 4. No inventar nombres con timestamp ni editar una migracion ya aplicada en produccion.
 5. Actualizar los tipos y documentar el cambio.
-6. Validar localmente con Supabase CLI cuando Docker este disponible y ejecutar asesores despues de enlazar un proyecto.
+6. Reconciliar `src/types/database.generated.ts` con `src/types/database.ts`; el archivo generado no reemplaza automaticamente al importado por la aplicacion.
+7. Validar localmente con Supabase CLI cuando Docker este disponible y ejecutar asesores despues de enlazar un proyecto.
+8. Confirmar que el historial local coincide con las migraciones remotas antes y despues de aplicar DDL.
 
 ## Invariantes de dominio
 
@@ -76,9 +83,20 @@ const team = teamRaw as Tables<'teams'>
 - Una sola persona registra al equipo completo.
 - Cada equipo elige exactamente un reto activo.
 - Cada equipo tiene una entrega; solo administracion puede publicarla en la landing.
-- Los jurados califican unicamente equipos asignados y durante la etapa abierta.
+- Los jurados califican unicamente equipos asignados y durante la etapa abierta. El objetivo aprobado es que solo puedan calificar entregas finales `submitted` o `published`; consulta el estado actual antes de modificar este flujo.
 - La rubrica es dinamica y una evaluacion final incluye todos los criterios activos.
 - Mentores y jurados se crean como usuarios Auth con perfiles de rol explicito.
+
+## Estado actual que no debe sobreestimarse
+
+- Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
+- El cierre global `events.submissions_close_at` existe, pero la API de equipo todavia no lo hace cumplir por hora.
+- Los retos no tienen deadline propio.
+- El jurado actualmente recibe borradores y no muestra `submitted_at`.
+- No existe integracion Resend ni otro correo transaccional.
+- `results_public` no tiene endpoint ni vista publica consumidora.
+
+Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.
 
 ## Verificacion y commits
 
@@ -94,4 +112,6 @@ PowerShell no soporta HEREDOC; usar comandos y parches compatibles. No usar coma
 
 ## Documentacion y coordinacion
 
-Actualizar `README.md`, `AGENTS.md` y las skills cuando cambien arquitectura, variables, flujos o reglas. Publicar un resumen en Slack o actualizar Linear solo cuando exista un workspace/proyecto identificado y la tarea autorice esa coordinacion externa.
+Actualizar `README.md`, `AGENTS.md`, `PRODUCT.md`, `docs/IMPLEMENTATION_STATUS.md` y las skills cuando cambien arquitectura, variables, flujos o reglas. Mantener `docs/NEXT_ITERATION_PROMPT.md` alineado mientras su alcance siga pendiente; al implementarlo, convertir sus puntos en estado verificado o archivarlos claramente.
+
+Publicar un resumen en Slack o actualizar Linear solo cuando exista un workspace/proyecto identificado y la tarea autorice esa coordinacion externa.

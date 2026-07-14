@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-El hero ya utiliza `Assets/video-orbital.mp4` como plano orbital continuo. El video no se reproduce automáticamente: la posición del scroll controla su tiempo para que avanzar y retroceder por la página mueva la cámara en ambos sentidos. Con `prefers-reduced-motion`, el video no se monta y se conserva la imagen estática.
+El hero usa `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`, como plano orbital continuo. La copia fuente editable se conserva en `Assets/video-orbital.mp4`. El video no se reproduce automáticamente: la posición del scroll controla su tiempo para que avanzar y retroceder por la página mueva la cámara en ambos sentidos. Con `prefers-reduced-motion`, el video no se monta y se conserva la imagen estática.
 
 ## Prompt final para generación
 

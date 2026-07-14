@@ -4,6 +4,10 @@
 
 OpenAI Build Week Manta combina una landing publica con una plataforma operativa para una Buildathon presencial de una jornada.
 
+## Estado de producto
+
+La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). El alcance de la siguiente iteracion esta especificado en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md): indicadores de obligatorio, entrega final estricta, tecnologias seleccionables, deadline por reto, acceso correcto del jurado y correo de confirmacion. Esos puntos son direccion aprobada, pero no deben describirse como desplegados hasta completar y verificar la implementacion.
+
 ## Usuarios
 
 - Builders: desarrolladores, estudiantes, disenadores, fundadores, emprendedores y creadores de Ecuador.
@@ -26,6 +30,10 @@ No es un proceso extenso de ideacion. La experiencia prioriza construir, probar,
 - Privacidad por defecto: participantes no son publicos; solo proyectos aprobados aparecen en la landing.
 - Operacion configurable: fechas, etapas, limites, retos, criterios, jurados, mentores y asignaciones se administran sin cambiar codigo.
 - Separacion visual: la landing conserva su narrativa; los paneles optimizan claridad, velocidad y control.
+- Borrador sin friccion, entrega rigurosa: un equipo puede avanzar por partes, pero el envio final debe cumplir todos los campos y enlaces definidos.
+- Tiempo explicito: cada reto debe comunicar y hacer cumplir su fecha y hora limite desde el servidor.
+- Jurado con contexto: estado, ultima hora de envio, deadline, tecnologias y enlaces deben poder leerse a simple vista antes de calificar.
+- Recuperacion confiable: al registrar, el contacto principal conserva el codigo y recibe confirmacion sin que un fallo del proveedor de correo invalide el equipo.
 
 ## Personalidad de marca
 
@@ -47,3 +55,5 @@ Evitar la estetica gamer de neon saturado, dashboards SaaS genericos, plantillas
 ## Accesibilidad e inclusion
 
 Objetivo WCAG 2.2 AA, navegacion por teclado, contraste suficiente, estructura semantica, foco visible y contenido comprensible en espanol. Todas las animaciones respetan `prefers-reduced-motion`; el contenido funciona sin movimiento avanzado ni WebGL.
+
+Los formularios deben marcar visualmente los campos obligatorios con `*`, explicar su significado y comunicar la obligatoriedad a tecnologias de asistencia sin depender solo del color. Los campos opcionales deben indicarse de forma explicita, y los errores deben identificar el campo y la accion necesaria.
