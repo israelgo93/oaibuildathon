@@ -12,18 +12,19 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 - Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
-La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y confirmacion transaccional con Resend. Las seis migraciones, los tipos remotos y las variables de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
+La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y confirmacion transaccional con Resend. Las siete migraciones, los tipos remotos y las variables de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
 
-## Cambio local pendiente de despliegue
+## Ejes tematicos desplegados
 
-El arbol local incorpora ejes tematicos y listas de ideas para cada reto. El panel administrativo puede editar ambas listas; el registro, el portal del equipo y mentoria las presentan como contexto de construccion. La migracion `20260714205820_add_challenge_themes.sql` precarga contenido para agentes y automatizacion, herramientas para builders e impacto local.
+Produccion incorpora ejes tematicos y listas de ideas para cada reto. El panel administrativo puede editar ambas listas; el registro, el portal del equipo y mentoria las presentan como contexto de construccion. La migracion `20260714205820_add_challenge_themes.sql` precarga contenido para agentes y automatizacion, herramientas para builders e impacto local.
 
-Este cambio aun no esta aplicado ni verificado en Supabase o Vercel Production. Hasta completar migracion, despliegue y prueba de navegador, la produccion conserva el contrato de titulo, descripcion y requisitos documentado debajo.
+La migracion, los tipos, la API publica, el registro y el portal del equipo estan verificados en produccion. Una prueba temporal de recuperacion mostro los 6 ejes y 8 ideas del reto de agentes y elimino todos sus datos al terminar. La ruta administrativa mantiene autenticacion obligatoria y el bundle desplegado contiene ambos campos y sus payloads; esta verificacion no repitio un guardado autenticado porque no habia una sesion administrativa disponible.
 
 ## Capacidades
 
 - Registro unico por equipo para 1, 2 o 3 participantes.
 - Un reto activo por equipo y control opcional de cupos.
+- Ejes tematicos y temas sugeridos editables por reto y visibles durante seleccion, construccion y mentoria.
 - Sesion de equipo mediante cookie HTTP-only y codigo de recuperacion.
 - Portal para guardar el proyecto como borrador o enviarlo al jurado.
 - Vitrina publica de proyectos aprobados en la landing.
@@ -143,8 +144,7 @@ El historial aplicado es:
 4. `supabase/migrations/20260714131805_complete_submission_deadlines_and_email_outbox.sql`: deadline por reto, invariantes de entrega final, restriccion SQL de jurado y outbox transaccional de registro.
 5. `supabase/migrations/20260714131931_index_registration_email_outbox_team_event.sql`: indice compuesto para la clave foranea del outbox.
 6. `supabase/migrations/20260714132323_fix_assignment_role_trigger.sql`: corrige el trigger compartido para asignar jurados y mentores sin acceder a columnas de la otra tabla.
-
-El arbol local contiene ademas `supabase/migrations/20260714205820_add_challenge_themes.sql`. Agrega `thematic_axes text[]` y `suggested_topics text[]`, precarga los tres retos y limita el numero de elementos de cada lista.
+7. `supabase/migrations/20260714205820_add_challenge_themes.sql`: agrega `thematic_axes text[]` y `suggested_topics text[]`, precarga los tres retos y limita el numero de elementos de cada lista.
 
 No edites migraciones aplicadas; crea una nueva con:
 

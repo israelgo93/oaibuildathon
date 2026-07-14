@@ -8,7 +8,7 @@ OpenAI Build Week Manta combina una landing publica con una plataforma operativa
 
 La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). El alcance de [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion: indicadores de obligatorio, borrador flexible, entrega final estricta, tecnologias seleccionables, deadline por reto, acceso correcto del jurado y correo transaccional mediante Resend. Las migraciones, los tipos remotos, la aplicacion desplegada y las variables de correo estan reconciliados.
 
-El arbol local agrega ejes tematicos y ejemplos concretos a los retos. Esta capacidad permanece pendiente de migracion y despliegue en produccion.
+Produccion incluye ejes tematicos y ejemplos concretos para los tres retos. La migracion, los contratos tipados, la API publica, el registro y el portal del equipo fueron verificados contra el despliegue canonico.
 
 ## Diseno de retos
 

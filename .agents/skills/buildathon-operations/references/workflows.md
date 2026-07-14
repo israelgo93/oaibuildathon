@@ -16,7 +16,7 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 ## Administration: current behavior
 
 1. Edit dates, team limits, stage switches, showcase visibility, and the result-visibility flag for the most recent event. The UI does not create an event.
-2. Create or edit challenges and rubric criteria.
+2. Create or edit challenges, their thematic axes and suggested topics, and rubric criteria.
 3. Create Auth users for admins, judges, and mentors; the UI lists them but does not deactivate, delete, or reset them.
 4. Register a team manually through the same registration endpoint used by the public flow.
 5. Assign judges and mentors to teams.
@@ -56,6 +56,6 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 
 The database migrations, generated types, Vercel application and Resend variables agree with production. A real registration verified provider acceptance at the first outbox attempt; provider failures remain isolated from registration.
 
-## Local challenge guidance pending production
+## Challenge guidance deployed
 
-The local tree extends challenge administration with thematic axes and suggested project topics. Registration shows both lists before challenge selection; the team portal keeps them visible during construction; mentors receive the same context. `20260714205820_add_challenge_themes.sql` is applied in Supabase; application deployment verification remains pending.
+Challenge administration includes thematic axes and suggested project topics. Registration shows both lists before challenge selection; the team portal keeps them visible during construction; mentors receive the same context. `20260714205820_add_challenge_themes.sql` and the application are deployed. Public configuration, registration and the team portal were verified against production; the deployed admin bundle and its authentication boundary were verified without repeating an authenticated save.

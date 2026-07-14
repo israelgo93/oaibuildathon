@@ -5,7 +5,7 @@ This reference describes the deployed schema and application verified on 2026-07
 ## Core entities
 
 - `events`: schedule, global stage switches, public-visibility flags, and configurable team limits. The database hard cap is three. Operational surfaces currently choose the most recent event; the admin UI does not create events.
-- `challenges`: active event challenges, requirements, ordering, optional capacity, and `submission_deadline_at`.
+- `challenges`: active event challenges, requirements, ordering, optional capacity, `submission_deadline_at`, `thematic_axes`, and `suggested_topics`.
 - `teams`: one global registration, primary contact, status, recovery code, and HMAC token hash.
 - `team_members`: one to three builders; email is unique within an event; exactly one member is the primary contact.
 - `team_challenges`: exactly one selected challenge per team.
@@ -48,12 +48,13 @@ Direct table grants are revoked from `anon` and `authenticated`. Vercel Function
 4. `20260714131805_complete_submission_deadlines_and_email_outbox.sql`: challenge deadlines, transactional email outbox, strict final submissions, timestamp preservation, and jury SQL guard.
 5. `20260714131931_index_registration_email_outbox_team_event.sql`: covering index for the outbox composite foreign key.
 6. `20260714132323_fix_assignment_role_trigger.sql`: safe role validation for judge and mentor assignment triggers.
+7. `20260714205820_add_challenge_themes.sql`: thematic axes, suggested topics, seeded guidance for the three challenges, and list cardinality constraints.
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 
-## Local schema change pending production
+## Challenge guidance
 
-`20260714205820_add_challenge_themes.sql` adds `challenges.thematic_axes text[]` and `challenges.suggested_topics text[]`. The local application requires 1-8 thematic axes and 1-12 suggested topics when an administrator creates or updates a challenge. The migration seeds the three existing challenges and is applied in Supabase; application deployment verification remains pending.
+`20260714205820_add_challenge_themes.sql` adds `challenges.thematic_axes text[]` and `challenges.suggested_topics text[]`. The application requires 1-8 thematic axes and 1-12 suggested topics when an administrator creates or updates a challenge. The migration seeds the three existing challenges and is deployed in Supabase. Public configuration, registration and the team portal were verified against production; the deployed admin bundle and access boundary were verified without repeating an authenticated save.
 
 ## Seeded rubric
 
@@ -61,4 +62,4 @@ The default 100-point construction-focused rubric is: functional product 30, use
 
 ## Deployed schema and application
 
-The three latest migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft and final submission were verified with a real browser flow.
+All seven migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft, final submission and challenge guidance were verified with real browser flows.
