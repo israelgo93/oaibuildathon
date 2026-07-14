@@ -269,7 +269,7 @@ export async function processRegistrationEmailForTeam(
   const attempts = job.outbox.attempts + 1
   const result = await transport.send(buildRegistrationEmail(job, config))
 
-  if (result.ok) {
+  if (result.ok === true) {
     await repository.markSent(job.outbox.id, attempts, result.providerId, now.toISOString())
     return
   }
