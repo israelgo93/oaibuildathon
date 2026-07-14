@@ -11,7 +11,8 @@ const SpaceField = lazy(() =>
 const EVENT_URL = 'https://luma.com/buildathon.manta'
 const GLOBAL_URL = 'https://openai.com/build-week/'
 const GPT_URL = 'https://openai.com/index/gpt-5-6/'
-const COMMUNITY_URL = 'https://chat.whatsapp.com/GNoZ7SDOWMhIW6a2tbZypy'
+const BUILDERS_WHATSAPP_URL = 'https://chat.whatsapp.com/GNoZ7SDOWMhIW6a2tbZypy'
+const HERO_VIDEO_RANGE = 0.72
 const EVENT_TIMESTAMP = new Date('2026-07-15T10:00:00-05:00').getTime()
 const HERO_IMAGE = '/assets/hero-2560.webp'
 const HERO_IMAGE_SMALL = '/assets/hero-1280.webp'
@@ -56,6 +57,21 @@ interface CountdownUnitValue {
   label: string
   singularLabel: string
   pluralLabel: string
+}
+
+interface CommunityLink {
+  label: string
+  url: string
+}
+
+interface CommunityPartner {
+  name: string
+  description: string
+  logo: string
+  logoClassName: string
+  logoWidth: number
+  logoHeight: number
+  links: CommunityLink[]
 }
 
 const MATRIX_DIGITS: Record<string, string> = {
@@ -133,6 +149,46 @@ const models: ModelItem[] = [
   },
 ]
 
+const organizingCommunity: CommunityPartner = {
+  name: 'The Builders',
+  description: 'Builders ecuatorianos que convierten ideas de IA en productos y aprendizaje compartido.',
+  logo: '/assets/community-the-builders.webp',
+  logoClassName: 'community-logo-builders',
+  logoWidth: 480,
+  logoHeight: 441,
+  links: [
+    { label: 'Instagram', url: 'https://www.instagram.com/thebuilders.ia' },
+    { label: 'WhatsApp', url: BUILDERS_WHATSAPP_URL },
+  ],
+}
+
+const coorganizingCommunities: CommunityPartner[] = [
+  {
+    name: 'Kriuu',
+    description: 'Tecnología, creatividad y comunidad conectadas desde Ecuador.',
+    logo: '/assets/community-kriuu.webp',
+    logoClassName: 'community-logo-kriuu',
+    logoWidth: 79,
+    logoHeight: 79,
+    links: [
+      { label: 'Sitio web', url: 'https://kriuu.com/' },
+      { label: 'Instagram', url: 'https://www.instagram.com/kriuu.ec/' },
+    ],
+  },
+  {
+    name: 'Club IA ULEAM',
+    description: 'Talento universitario que aprende, experimenta y construye con inteligencia artificial.',
+    logo: '/assets/community-club-ia-uleam.webp',
+    logoClassName: 'community-logo-club',
+    logoWidth: 480,
+    logoHeight: 487,
+    links: [
+      { label: 'Sitio web', url: 'https://iauleam.club' },
+      { label: 'Instagram', url: 'https://www.instagram.com/club.ia.uleam' },
+    ],
+  },
+]
+
 function getCountdownValue(): CountdownValue {
   const difference = EVENT_TIMESTAMP - Date.now()
 
@@ -181,6 +237,40 @@ function ExternalIcon() {
     <svg viewBox="0 0 20 20" aria-hidden="true">
       <path d="M7 5h8v8M15 5 6 14M14 11v4H5V6h4" />
     </svg>
+  )
+}
+
+function CommunityLogo({ community }: { community: CommunityPartner }) {
+  return (
+    <div className={`community-logo ${community.logoClassName}`}>
+      <img
+        src={community.logo}
+        alt=""
+        width={community.logoWidth}
+        height={community.logoHeight}
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  )
+}
+
+function CommunityLinks({ community }: { community: CommunityPartner }) {
+  return (
+    <div className="community-links">
+      {community.links.map((link) => (
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`${link.label} de ${community.name}; se abre en una nueva pestaña`}
+          key={link.url}
+        >
+          {link.label}
+          <ExternalIcon />
+        </a>
+      ))}
+    </div>
   )
 }
 
@@ -325,7 +415,10 @@ function App() {
       }
 
       const maxTime = Math.max(0, video.duration - 0.05)
-      const targetTime = Math.min(maxTime, Math.max(0, targetProgress * maxTime))
+      const targetTime = Math.min(
+        maxTime,
+        Math.max(0, targetProgress * maxTime * HERO_VIDEO_RANGE),
+      )
 
       if (video.seekable.length > 0) {
         const seekableStart = video.seekable.start(0)
@@ -440,13 +533,14 @@ function App() {
                 <video
                   ref={heroVideoRef}
                   className="hero-video"
-                  src={HERO_VIDEO}
                   poster={HERO_IMAGE}
                   muted
                   playsInline
                   preload="auto"
                   aria-hidden="true"
-                />
+                >
+                  <source src={HERO_VIDEO} type="video/mp4" media="(min-width: 761px)" />
+                </video>
               ) : null}
             </div>
             <div className="hero-shade" aria-hidden="true" />
@@ -731,14 +825,50 @@ function App() {
                 Registrarme en Luma
                 <ArrowIcon />
               </a>
-              <a className="button button-ghost" href={COMMUNITY_URL} target="_blank" rel="noreferrer">
-                Unirme a The Builders
-                <ExternalIcon />
+              <a className="button button-ghost" href="#comunidades">
+                Conocer las comunidades
+                <ArrowIcon />
               </a>
             </div>
-            <p className="host-line">
-              Organizado por Codex Community mediante el programa Codex Ambassadors, junto a The Builders y Club IA ULEAM.
-            </p>
+          </div>
+        </section>
+
+        <section className="community-section" id="comunidades" aria-labelledby="community-title">
+          <div className="page-shell community-shell">
+            <div className="community-heading">
+              <h2 className="section-mark" id="community-title">Organización y comunidades</h2>
+              <p>
+                OpenAI Build Week Manta es organizada por The Builders junto al programa Codex
+                Ambassadors e impulsada por Codex Community. Kriuu y Club IA ULEAM participan como
+                comunidades coorganizadoras.
+              </p>
+            </div>
+
+            <article className="community-primary">
+              <CommunityLogo community={organizingCommunity} />
+              <div className="community-copy">
+                <p className="community-role">Organización principal</p>
+                <h3>{organizingCommunity.name}</h3>
+                <p>{organizingCommunity.description}</p>
+              </div>
+              <CommunityLinks community={organizingCommunity} />
+            </article>
+
+            <div className="community-coorganizers">
+              <p className="community-group-label">Comunidades coorganizadoras</p>
+              <ul className="community-list">
+                {coorganizingCommunities.map((community) => (
+                  <li className="community-item" key={community.name}>
+                    <CommunityLogo community={community} />
+                    <div className="community-copy">
+                      <h3>{community.name}</h3>
+                      <p>{community.description}</p>
+                    </div>
+                    <CommunityLinks community={community} />
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </section>
       </main>
@@ -755,7 +885,7 @@ function App() {
           <div className="footer-links">
             <a href={EVENT_URL} target="_blank" rel="noreferrer">Evento en Luma</a>
             <a href={GLOBAL_URL} target="_blank" rel="noreferrer">Build Week global</a>
-            <a href={COMMUNITY_URL} target="_blank" rel="noreferrer">The Builders</a>
+            <a href="#comunidades">Comunidades</a>
           </div>
           <p>Construido para quienes convierten ideas en realidad.</p>
         </div>

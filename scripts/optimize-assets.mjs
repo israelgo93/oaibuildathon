@@ -63,6 +63,42 @@ await Promise.all(
   }),
 )
 
+const communityLogoJobs = [
+  {
+    source: 'logo-kriuu.png',
+    output: 'community-kriuu.webp',
+    width: 79,
+    trim: false,
+    lossless: true,
+  },
+  {
+    source: 'logo-clubia-uleam2.jpeg',
+    output: 'community-club-ia-uleam.webp',
+    width: 480,
+    trim: true,
+    lossless: false,
+  },
+  {
+    source: 'TheBuildersLogo.png',
+    output: 'community-the-builders.webp',
+    width: 480,
+    trim: true,
+    lossless: false,
+  },
+]
+
+await Promise.all(
+  communityLogoJobs.map(async ({ source, output, width, trim, lossless }) => {
+    const sourceImage = sharp(path.join(sourceDirectory, source))
+    const preparedImage = trim ? sourceImage.trim({ threshold: 12 }) : sourceImage
+
+    await preparedImage
+      .resize({ width, withoutEnlargement: true })
+      .webp(lossless ? { lossless: true, effort: 5 } : { quality: 90, effort: 5 })
+      .toFile(path.join(outputDirectory, output))
+  }),
+)
+
 await copyFile(
   path.join(sourceDirectory, 'video-orbital.mp4'),
   path.join(outputDirectory, 'video-orbital.mp4'),
