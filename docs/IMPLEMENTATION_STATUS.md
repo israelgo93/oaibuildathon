@@ -10,7 +10,7 @@ El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verif
 
 - las seis migraciones locales coinciden con el historial remoto y las tres migraciones de esta iteracion estan aplicadas;
 - `src/types/database.generated.ts` fue regenerado desde el esquema remoto y reconciliado con `src/types/database.ts`;
-- el codigo esta publicado en Vercel y el alias canonico apunta al deployment `dpl_FG2RTxhgiTmTeB1nrwXPy8H81mEK`;
+- el codigo esta publicado en Vercel y el alias canonico apunta a un deployment Production en estado `READY`;
 - `/`, `/registro`, `/equipo`, `/login`, la configuracion publica y la vitrina responden correctamente;
 - una prueba real de navegador completo registro, sesion automatica, guardado de borrador incompleto y envio final `submitted`; los datos temporales se eliminaron al terminar;
 - TypeScript estricto, 34 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos terminaron correctamente.
