@@ -10,7 +10,7 @@ La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](doc
 
 Produccion incluye ejes tematicos y ejemplos concretos para los tres retos. La migracion, los contratos tipados, la API publica, el registro y el portal del equipo fueron verificados contra el despliegue canonico.
 
-El arbol actual extiende la operacion con alta y re-notificacion de staff, cambio obligatorio, recuperacion de contrasena y difusion a participantes. El esquema remoto ya incorpora estas entidades sin alterar cuentas existentes; la capacidad no se considera produccion hasta verificar el despliegue de la aplicacion.
+Produccion extiende la operacion con alta y re-notificacion de staff, cambio obligatorio, recuperacion de contrasena y difusion a participantes. El esquema, la API y las vistas estan desplegados y verificados sin alterar cuentas existentes ni ejecutar notificaciones reales durante la comprobacion.
 
 ## Diseno de retos
 

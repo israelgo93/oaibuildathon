@@ -12,7 +12,7 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 - Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
-La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y confirmacion transaccional con Resend. Las siete migraciones, los tipos remotos y las variables de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
+La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y confirmacion transaccional con Resend. El historial completo de once migraciones, los tipos remotos y las variables de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
 
 ## Ejes tematicos desplegados
 
@@ -22,9 +22,9 @@ La migracion, los tipos, la API publica, el registro y el portal del equipo esta
 
 ## Acceso de staff y difusion
 
-El arbol actual agrega credenciales temporales para staff, cambio obligatorio, recuperacion de contrasena y una seccion administrativa de difusion. Al crear un mentor o jurado, administracion puede escribir una clave temporal o dejar que el servidor genere una de 16 caracteres; el correo se envia con instrucciones segun el rol. Los perfiles existentes se notifican solo mediante una accion explicita individual, de pendientes o masiva. Las acciones masivas excluyen administradores y nunca se ejecutan durante una migracion o despliegue.
+Produccion incorpora credenciales temporales para staff, cambio obligatorio, recuperacion de contrasena y una seccion administrativa de difusion. Al crear un mentor o jurado, administracion puede escribir una clave temporal o dejar que el servidor genere una de 16 caracteres; el correo se envia con instrucciones segun el rol. Los perfiles existentes se notifican solo mediante una accion explicita individual, de pendientes o masiva. Las acciones masivas excluyen administradores y nunca se ejecutan durante una migracion o despliegue.
 
-La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `email` o `correo`, muestra una vista previa y exige confirmacion. El servidor limita el contenido a texto plano y CTA internas, congela la campana en Supabase y usa lotes Resend de hasta 100 destinatarios con idempotencia estable. Una accion administrativa recupera campanas en cola, interrumpidas o parciales y solo reintenta errores transitorios. Las migraciones de esta capacidad ya estan aplicadas; la UI se considera pendiente de produccion hasta completar el despliegue y la verificacion canonica.
+La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `email` o `correo`, muestra una vista previa y exige confirmacion. El servidor limita el contenido a texto plano y CTA internas, congela la campana en Supabase y usa lotes Resend de hasta 100 destinatarios con idempotencia estable. Una accion administrativa recupera campanas en cola, interrumpidas o parciales y solo reintenta errores transitorios. Las migraciones, API y vistas estan desplegadas y verificadas en el alias canonico; la comprobacion uso datos ficticios y no envio mensajes ni cambio claves reales.
 
 ## Capacidades
 
@@ -253,7 +253,7 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 3. No pegues secretos en comandos, commits, issues o logs compartidos; usa el formulario seguro de Vercel o `vercel env add` de forma interactiva.
 4. Despliega y valida `/`, `/registro`, `/equipo`, `/login` y los paneles por rol.
 
-`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions. El proyecto usa el plan Hobby: para respetar su limite de 12 Functions por deployment, `/api/auth/me` y `/api/auth/password-recovery` comparten un entrypoint dinamico, al igual que `/api/admin/broadcasts` y `/api/admin/staff-access`; las URLs, metodos y controles de autorizacion no cambian.
+`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions. El proyecto usa el plan Hobby: para respetar su limite de 12 Functions por deployment, `/api/auth/me` y `/api/auth/password-recovery` comparten un entrypoint dinamico, al igual que `/api/admin/broadcasts` y `/api/admin/staff-access`; las URLs, metodos y controles de autorizacion no cambian. El deployment verificado confirma exactamente 12 Functions.
 
 ## Flujo operativo recomendado
 

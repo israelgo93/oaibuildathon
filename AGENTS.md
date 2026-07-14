@@ -95,7 +95,7 @@ const team = teamRaw as Tables<'teams'>
 - La aplicacion de produccion expone ejes tematicos y temas sugeridos en la configuracion publica, registro, portal del equipo y mentoria. Registro y portal fueron verificados con navegador; el formulario administrativo desplegado y su proteccion se verificaron, pero esta comprobacion no repitio un guardado autenticado por falta de una sesion disponible.
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.
 - Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
-- El arbol local agrega correo de acceso, recuperacion de contrasena y difusion. El esquema esta aplicado sin rotar claves ni enviar mensajes: se conservaron 1 admin, 7 jurados y 5 mentores, todos activos y sin cambio forzado. No describir la UI/API nueva como produccion hasta desplegarla y verificarla; nunca ejecutar las acciones masivas como parte de una prueba.
+- Produccion incorpora correo de acceso, recuperacion de contrasena y difusion en el commit funcional `f2a3ecd`, desplegado con 12 Functions y verificado en el alias canonico. El esquema se aplico sin rotar claves ni enviar mensajes: se conservan 1 admin, 7 jurados y 5 mentores activos, con cero cambios forzados, cero estados de acceso tocados, cero campanas y cero solicitudes de recuperacion. Nunca ejecutar acciones masivas como parte de una prueba.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 
 Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.

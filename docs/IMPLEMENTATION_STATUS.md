@@ -4,11 +4,11 @@ Ultima verificacion tecnica: 14 de julio de 2026.
 
 Este documento separa el comportamiento disponible del alcance aprobado para una siguiente iteracion. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
 
-## Acceso de staff y difusion en despliegue
+## Acceso de staff y difusion desplegados y verificados
 
 Las migraciones `20260714223749_add_staff_access_and_broadcasts.sql`, `20260714224056_index_broadcast_campaign_foreign_keys.sql`, `20260714230812_harden_broadcast_retry_and_idempotency.sql` y `20260714230821_harden_staff_access_and_password_recovery.sql` estan aplicadas en Supabase. Son aditivas: no contienen borrado ni desactivacion de cuentas. La verificacion posterior conserva 13 perfiles y 13 usuarios Auth: 1 administrador, 7 jurados y 5 mentores activos. Todos mantienen `must_change_password = false`, `access_email_status = not_sent`; existen cero campanas y cero solicitudes de recuperacion. Por tanto, aplicar el esquema no ha rotado claves ni enviado correos.
 
-El codigo local incorpora:
+Produccion incorpora:
 
 - clave temporal manual u opcionalmente generada en servidor al crear staff;
 - correo HTML/texto con instrucciones separadas para administracion, jurado y mentoria;
@@ -18,7 +18,11 @@ El codigo local incorpora:
 - activacion de una nueva clave existente solo despues de que Resend acepta el mensaje, conservando la clave anterior ante fallos del proveedor;
 - campanas de hasta 500 destinatarios, TXT/CSV con columna de correo, vista previa, CTA interna, lotes de 100, idempotencia estable, estado durable y recuperacion de envios interrumpidos o transitorios.
 
-La verificacion integrada termina con TypeScript estricto, 94 pruebas, `npm audit` sin vulnerabilidades y build de produccion correcto. Una prueba SQL transaccional confirmo creacion/reanudacion de campana y cuota atomica de recuperacion con `ROLLBACK`. La aplicacion aun no se describe como desplegada hasta publicar y verificar las rutas canonicas. Ninguna prueba envia correos a mentores, jurados o administradores reales.
+El deployment Production `dpl_Ev8jt68pYNfCn2iM14zLo9cu35Ev` del commit funcional `f2a3ecd` termino en estado `READY`, actualizo `https://oaibuildathon.vercel.app` y confirmo exactamente 12 Functions. Los guards reales devolvieron `401` en `/api/auth/me` y `/api/admin/broadcasts`, y `404` en acciones dinamicas desconocidas. Los dispatchers usan el parser estandar `URL`; tras invocarlos, Vercel no registro errores ni warnings en ese deployment.
+
+La verificacion de navegador cubrio el formulario de recuperacion, la ruta de cambio de contrasena, los guards de administracion y las vistas autenticadas de Personas y Difusion con una sesion y respuestas ficticias interceptadas. Se comprobaron la clave manual/opcional, la exclusion de administradores, las confirmaciones masivas, la carga TXT/CSV, deduplicacion, vista previa, CTA, confirmacion y estado deshabilitado previo al envio. No se envio ningun correo, no se activo ninguna accion y no se uso una cuenta real en esa comprobacion.
+
+La verificacion integrada termino con TypeScript estricto, 94 pruebas, `npm audit` sin vulnerabilidades y dos builds de produccion correctos. Una prueba SQL transaccional confirmo creacion/reanudacion de campana y cuota atomica de recuperacion con `ROLLBACK`.
 
 ## Ejes tematicos desplegados y verificados
 
@@ -28,20 +32,18 @@ El panel administrativo edita las listas con un elemento por linea. La configura
 
 La verificacion del 14 de julio de 2026 confirma que el historial remoto contiene la septima migracion, las restricciones de cardinalidad estan activas y los datos remotos conservan 6/8 elementos para agentes, 6/8 para builders y 8/10 para impacto local. La API publica devolvio esas mismas cantidades; `/registro` mostro las seis listas completas y una sesion temporal de `/equipo` mostro los 6 ejes y 8 ideas del reto de agentes. El equipo temporal fue eliminado y la consulta de limpieza devolvio cero registros.
 
-El deployment Production del commit `7dff353` termino en estado `READY`, el alias canonico fue actualizado y Vercel no reporto errores de ejecucion en la hora de verificacion. `/admin` rechazo correctamente el acceso sin sesion y el bundle desplegado contiene los campos `thematicAxes` y `suggestedTopics`, sus etiquetas y su payload de actualizacion. No se repitio un guardado administrativo autenticado porque no habia una sesion disponible en el entorno; el contrato de mutacion y validacion queda cubierto por las pruebas automatizadas.
-
-La verificacion local termino con TypeScript estricto, 37 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos correctos.
+El deployment Production vigente contiene los campos `thematicAxes` y `suggestedTopics`, sus etiquetas y su payload de actualizacion. `/admin` rechaza correctamente el acceso sin sesion. La vista administrativa se comprobo con datos ficticios interceptados, sin guardar ni modificar retos reales; el contrato de mutacion y validacion queda cubierto por las pruebas automatizadas.
 
 ## Implementacion desplegada y verificada
 
 El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verificacion del 14 de julio de 2026 confirma:
 
-- las primeras siete migraciones de ese alcance coinciden con el historial remoto;
+- las once migraciones locales coinciden con el historial remoto;
 - `src/types/database.generated.ts` fue regenerado desde el esquema remoto y reconciliado con `src/types/database.ts`;
 - el codigo esta publicado en Vercel y el alias canonico apunta a un deployment Production en estado `READY`;
 - `/`, `/registro`, `/equipo`, `/login`, la configuracion publica y la vitrina responden correctamente;
 - una prueba real de navegador completo registro, sesion automatica, guardado de borrador incompleto y envio final `submitted`; los datos temporales se eliminaron al terminar;
-- TypeScript estricto, 34 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos terminaron correctamente.
+- TypeScript estricto, 94 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos terminaron correctamente.
 
 Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO` y `APP_BASE_URL` estan configuradas en Production. Un registro real devolvio `201` y su outbox termino en `sent` al primer intento, con ID de proveedor y sin error; el equipo temporal se elimino despues. Docker Desktop no estuvo disponible para `supabase db reset`; el esquema, las transacciones, el historial y los asesores se verificaron directamente contra el proyecto remoto.
 
@@ -61,7 +63,7 @@ Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FR
 | Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie, codigo de recuperacion y confirmacion por correo | Un fallo de correo no invalida ni duplica el registro |
 | Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
 | Retos | Implementado | Titulo, enfoque, requisitos, estado, cupo opcional, deadline propio, ejes tematicos y temas sugeridos editables | La UI administra retos del evento existente mas reciente |
-| Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, asignaciones, entregas y ranking privado | No crea eventos; la nueva UI de acceso y difusion esta pendiente de verificacion desplegada |
+| Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones, entregas y ranking privado | No crea eventos; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
 | Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
 | Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Usa el evento mas reciente con vitrina habilitada |
@@ -110,11 +112,15 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 | `/api/admin/dashboard` | Admin | Datos operativos y ranking |
 | `/api/admin/manage` | Admin | Mutaciones administrativas auditadas |
 | `/api/admin/staff` | Admin | Creacion de admin, jurado o mentor |
+| `/api/admin/staff-access` | Admin | Generacion, rotacion confirmada y envio de acceso a mentores o jurados |
+| `/api/admin/broadcasts` | Admin | Creacion, historial y reanudacion confirmada de difusiones |
+| `/api/auth/me` | Staff autenticado | Perfil, rol y estado de cambio obligatorio |
+| `/api/auth/password-recovery` | Publico | Solicitud neutral y limitada de recuperacion mediante correo |
 | `/api/judge/dashboard` | Jurado | Asignaciones, entregas y rubrica |
 | `/api/judge/evaluations` | Jurado | Borradores y envio de calificaciones |
 | `/api/mentor/dashboard` | Mentor | Equipos asignados |
 
-El arbol pendiente de despliegue agrega `/api/auth/me`, `/api/auth/password-recovery`, `/api/admin/staff-access` y `/api/admin/broadcasts`. No se consideran endpoints de produccion hasta verificar el deployment.
+Los dos endpoints de Auth comparten un dispatcher dinamico y los dos endpoints administrativos nuevos comparten otro. Esta composicion mantiene las mismas URLs y controles de acceso dentro del limite verificado de 12 Functions de Vercel Hobby.
 
 ## Migraciones aplicadas
 
@@ -147,4 +153,4 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 
 El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion.
 
-No queda configuracion externa pendiente en la iteracion archivada. Para la extension de acceso y difusion falta publicar el codigo y verificar las rutas sin ejecutar notificaciones reales. `RESEND_FROM` ya esta fijado en Production como `OpenAI Build Week Manta <noreply@datatensei.ai>`. El enlace de recuperacion vuelve al Site URL y el cliente enruta el evento `PASSWORD_RECOVERY`, por lo que no depende de incluir tokens en URLs propias.
+No queda configuracion externa pendiente en la iteracion archivada ni en la extension de acceso y difusion. `RESEND_FROM` esta fijado en Production como `OpenAI Build Week Manta <noreply@datatensei.ai>`. El enlace de recuperacion vuelve al Site URL y el cliente enruta el evento `PASSWORD_RECOVERY`, por lo que no depende de incluir tokens en URLs propias. Las operaciones reales de notificacion y difusion quedan deliberadamente bajo confirmacion manual de administracion.
