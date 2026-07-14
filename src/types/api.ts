@@ -1,4 +1,4 @@
-import type { SubmissionStatus, Tables, UserRole } from './database.js'
+import type { BroadcastCtaKey, SubmissionStatus, Tables, UserRole } from './database.js'
 
 export interface PublicEventConfig {
   event: Pick<
@@ -113,6 +113,8 @@ export interface AuthenticatedProfile {
   role: UserRole
   fullName: string
   email: string
+  mustChangePassword: boolean
+  temporaryPasswordExpiresAt: string | null
 }
 
 export interface AdminDashboardData {
@@ -197,8 +199,77 @@ export type AdminAction =
 export interface CreateStaffInput {
   fullName: string
   email: string
-  password: string
+  password?: string
   role: UserRole
+}
+
+export interface CreateStaffResult {
+  id: string
+  fullName: string
+  email: string
+  role: UserRole
+  emailSent: boolean
+}
+
+export type StaffAccessAction =
+  | { action: 'notify_one'; profileId: string }
+  | { action: 'notify_unnotified'; confirmation: 'NOTIFICAR' }
+  | { action: 'notify_all'; confirmation: 'ROTAR CLAVES' }
+
+export interface StaffAccessResult {
+  total: number
+  sent: number
+  failed: number
+}
+
+export interface PasswordRecoveryInput {
+  email: string
+}
+
+export interface AuthProfileResult {
+  profile: AuthenticatedProfile
+}
+
+export interface CreateBroadcastInput {
+  requestId: string
+  eventId: string
+  subject: string
+  message: string
+  ctaKey: BroadcastCtaKey
+  recipients: string
+}
+
+export interface CreateBroadcastResult {
+  campaignId: string
+  recipientCount: number
+  duplicateCount: number
+  status: Tables<'broadcast_campaigns'>['status']
+}
+
+export type BroadcastResumeKind = 'start' | 'recover' | 'retry'
+
+export type BroadcastCampaignSummary = Tables<'broadcast_campaigns'> & {
+  retryableFailedCount: number
+  permanentFailedCount: number
+  resumable: boolean
+  resumeKind: BroadcastResumeKind | null
+  resumableAt: string | null
+}
+
+export interface BroadcastListResult {
+  campaigns: BroadcastCampaignSummary[]
+}
+
+export interface RetryBroadcastInput {
+  action: 'resume'
+  campaignId: string
+}
+
+export interface RetryBroadcastResult {
+  campaignId: string
+  eligibleCount: number
+  status: 'scheduled'
+  resumeKind: BroadcastResumeKind
 }
 
 export interface ApiErrorBody {

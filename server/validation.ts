@@ -95,9 +95,37 @@ export const submissionSchema = z.object({
 export const staffSchema = z.object({
   fullName: requiredText('El nombre', 120),
   email: z.string().trim().email().max(254),
-  password: z.string().min(10).max(128),
+  password: z.string().min(12, 'La contrasena debe tener al menos 12 caracteres').max(128).optional(),
   role: z.enum(['admin', 'judge', 'mentor']),
+}).strict().superRefine((value, context) => {
+  if (value.role === 'admin' && !value.password) {
+    context.addIssue({ code: 'custom', message: 'La contrasena manual es obligatoria para administradores', path: ['password'] })
+  }
 })
+
+export const staffAccessSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('notify_one'), profileId: z.string().uuid() }).strict(),
+  z.object({ action: z.literal('notify_unnotified'), confirmation: z.literal('NOTIFICAR') }).strict(),
+  z.object({ action: z.literal('notify_all'), confirmation: z.literal('ROTAR CLAVES') }).strict(),
+])
+
+export const passwordRecoverySchema = z.object({
+  email: z.string().trim().email().max(254),
+}).strict()
+
+export const broadcastSchema = z.object({
+  requestId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  subject: requiredText('El asunto', 150),
+  message: requiredText('El mensaje', 5000),
+  ctaKey: z.enum(['none', 'landing', 'registration', 'team_portal', 'staff_login']),
+  recipients: z.string().min(1, 'Agrega al menos un correo').max(262_144, 'El archivo o listado supera 256 KiB'),
+}).strict()
+
+export const retryBroadcastSchema = z.object({
+  action: z.literal('resume'),
+  campaignId: z.string().uuid(),
+}).strict()
 
 export const evaluationSchema = z.object({
   eventId: z.string().uuid(),

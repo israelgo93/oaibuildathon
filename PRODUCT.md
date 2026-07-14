@@ -10,6 +10,8 @@ La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](doc
 
 Produccion incluye ejes tematicos y ejemplos concretos para los tres retos. La migracion, los contratos tipados, la API publica, el registro y el portal del equipo fueron verificados contra el despliegue canonico.
 
+El arbol actual extiende la operacion con alta y re-notificacion de staff, cambio obligatorio, recuperacion de contrasena y difusion a participantes. El esquema remoto ya incorpora estas entidades sin alterar cuentas existentes; la capacidad no se considera produccion hasta verificar el despliegue de la aplicacion.
+
 ## Diseno de retos
 
 Cada reto conserva un enfoque breve y requisitos verificables, pero orienta la ideacion mediante dos listas administrables:
@@ -47,6 +49,9 @@ No es un proceso extenso de ideacion. La experiencia prioriza construir, probar,
 - Tiempo explicito: cada reto debe comunicar y hacer cumplir su fecha y hora limite desde el servidor.
 - Jurado con contexto: estado, ultima hora de envio, deadline, tecnologias y enlaces deben poder leerse a simple vista antes de calificar.
 - Recuperacion confiable: al registrar, el contacto principal conserva el codigo y recibe confirmacion sin que un fallo del proveedor de correo invalide el equipo.
+- Acceso interno recuperable: cada cuenta recibe una credencial temporal, debe cambiarla y puede solicitar un enlace neutral sin revelar si el correo existe.
+- Difusion deliberada: cada campana exige vista previa y confirmacion, usa destinatarios deduplicados y solo admite texto y enlaces internos predefinidos.
+- Preservacion de cuentas: notificar o desplegar nunca elimina usuarios; la accion masiva solo puede rotar claves de mentores y jurados activos.
 
 ## Personalidad de marca
 

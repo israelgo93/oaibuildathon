@@ -4,6 +4,10 @@ export type UserRole = 'admin' | 'judge' | 'mentor'
 export type TeamStatus = 'registered' | 'active' | 'withdrawn' | 'disqualified'
 export type SubmissionStatus = 'draft' | 'submitted' | 'published'
 export type RegistrationEmailStatus = 'pending' | 'retry' | 'sent' | 'failed'
+export type AccessEmailStatus = 'not_sent' | 'sending' | 'sent' | 'failed'
+export type BroadcastCtaKey = 'none' | 'landing' | 'registration' | 'team_portal' | 'staff_login'
+export type BroadcastCampaignStatus = 'queued' | 'processing' | 'completed' | 'partial' | 'failed'
+export type BroadcastRecipientStatus = 'pending' | 'processing' | 'sent' | 'failed'
 
 export type EventRow = {
   id: string
@@ -35,6 +39,59 @@ export type ProfileRow = {
   full_name: string
   email: string
   active: boolean
+  must_change_password: boolean
+  temporary_password_expires_at: string | null
+  password_changed_at: string | null
+  credential_version: number
+  access_email_status: AccessEmailStatus
+  access_email_attempted_at: string | null
+  access_email_sent_at: string | null
+  access_email_error_code: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type PasswordResetRequestRow = {
+  id: string
+  email_hash: string
+  ip_hash: string
+  outcome: 'ignored' | 'sent' | 'failed' | 'rate_limited'
+  requested_at: string
+}
+
+export type BroadcastCampaignRow = {
+  id: string
+  event_id: string
+  created_by: string | null
+  request_id: string
+  subject: string
+  message_text: string
+  cta_key: BroadcastCtaKey
+  status: BroadcastCampaignStatus
+  dispatch_version: number
+  recipient_count: number
+  sent_count: number
+  failed_count: number
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type BroadcastRecipientRow = {
+  id: string
+  campaign_id: string
+  email: string
+  batch_number: number
+  batch_position: number
+  status: BroadcastRecipientStatus
+  attempts: number
+  provider_id: string | null
+  last_error_code: string | null
+  last_status_code: number | null
+  retryable: boolean
+  idempotency_key: string
+  sent_at: string | null
   created_at: string
   updated_at: string
 }
@@ -217,6 +274,9 @@ export interface Database {
       mentor_assignments: TableDefinition<MentorAssignmentRow, InsertRow<MentorAssignmentRow, 'event_id' | 'mentor_id' | 'team_id'>>
       audit_logs: TableDefinition<AuditLogRow, InsertRow<AuditLogRow, 'action' | 'entity_type'>>
       registration_email_outbox: TableDefinition<RegistrationEmailOutboxRow, InsertRow<RegistrationEmailOutboxRow, 'team_id' | 'event_id' | 'idempotency_key'>>
+      password_reset_requests: TableDefinition<PasswordResetRequestRow, InsertRow<PasswordResetRequestRow, 'email_hash' | 'ip_hash'>>
+      broadcast_campaigns: TableDefinition<BroadcastCampaignRow, InsertRow<BroadcastCampaignRow, 'event_id' | 'request_id' | 'subject' | 'message_text' | 'cta_key' | 'recipient_count'>>
+      broadcast_recipients: TableDefinition<BroadcastRecipientRow, InsertRow<BroadcastRecipientRow, 'campaign_id' | 'email' | 'batch_number' | 'batch_position'>>
     }
     Views: Record<never, never>
     Functions: {
@@ -245,6 +305,36 @@ export interface Database {
           p_scores: Json
         }
         Returns: EvaluationRow
+      }
+      create_broadcast_campaign: {
+        Args: {
+          p_event_id: string
+          p_created_by: string
+          p_request_id: string
+          p_subject: string
+          p_message_text: string
+          p_cta_key: BroadcastCtaKey
+          p_recipients: Json
+        }
+        Returns: BroadcastCampaignRow
+      }
+      claim_broadcast_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: BroadcastCampaignRow
+      }
+      resume_broadcast_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: BroadcastCampaignRow
+      }
+      claim_password_reset_request: {
+        Args: {
+          p_email_hash: string
+          p_ip_hash: string
+          p_window_minutes: number
+          p_email_limit: number
+          p_ip_limit: number
+        }
+        Returns: string
       }
     }
     Enums: {

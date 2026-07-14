@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { effectiveSubmissionDeadline, formatEcuadorDateTime, isDeadlineReached } from '../src/lib/dates.js'
-import { adminActionSchema, evaluationSchema, registrationSchema, submissionSchema } from './validation.js'
+import { adminActionSchema, broadcastSchema, evaluationSchema, passwordRecoverySchema, registrationSchema, retryBroadcastSchema, staffAccessSchema, staffSchema, submissionSchema } from './validation.js'
 
 const validMember = {
   fullName: 'Ana Builder',
@@ -191,5 +191,49 @@ describe('adminActionSchema', () => {
     expect(adminActionSchema.safeParse({ ...challenge, thematicAxes: [] }).success).toBe(false)
     expect(adminActionSchema.safeParse({ ...challenge, suggestedTopics: [] }).success).toBe(false)
     expect(adminActionSchema.safeParse({ ...challenge, thematicAxes: Array.from({ length: 9 }, (_, index) => `Eje ${index}`) }).success).toBe(false)
+  })
+})
+
+describe('staff y recuperacion', () => {
+  const staff = { fullName: 'Mentora Uno', email: 'mentora@example.com', role: 'mentor' }
+
+  it('genera la clave para mentores o jurados y exige una manual para administradores', () => {
+    expect(staffSchema.safeParse(staff).success).toBe(true)
+    expect(staffSchema.safeParse({ ...staff, role: 'judge' }).success).toBe(true)
+    expect(staffSchema.safeParse({ ...staff, role: 'admin' }).success).toBe(false)
+    expect(staffSchema.safeParse({ ...staff, role: 'admin', password: 'Clave-Muy-Segura-2026' }).success).toBe(true)
+  })
+
+  it('limita acciones masivas a confirmaciones exactas', () => {
+    expect(staffAccessSchema.safeParse({ action: 'notify_unnotified', confirmation: 'NOTIFICAR' }).success).toBe(true)
+    expect(staffAccessSchema.safeParse({ action: 'notify_all', confirmation: 'confirmar' }).success).toBe(false)
+  })
+
+  it('valida el correo de recuperacion sin aceptar campos arbitrarios', () => {
+    expect(passwordRecoverySchema.safeParse({ email: 'jurado@example.com' }).success).toBe(true)
+    expect(passwordRecoverySchema.safeParse({ email: 'jurado@example.com', redirectTo: 'https://evil.example' }).success).toBe(false)
+  })
+})
+
+describe('broadcastSchema', () => {
+  const broadcast = {
+    requestId: '50000000-0000-4000-8000-000000000001',
+    eventId: validRegistration.eventId,
+    subject: 'Informacion para participantes',
+    message: 'Completa el registro de tu equipo.',
+    ctaKey: 'registration',
+    recipients: 'uno@example.com\ndos@example.com',
+  }
+
+  it('acepta solo CTA internas y texto plano dentro de limites', () => {
+    expect(broadcastSchema.safeParse(broadcast).success).toBe(true)
+    expect(broadcastSchema.safeParse({ ...broadcast, ctaKey: 'https://evil.example' }).success).toBe(false)
+    expect(broadcastSchema.safeParse({ ...broadcast, recipients: 'x'.repeat(262_145) }).success).toBe(false)
+  })
+
+  it('acepta solo la accion explicita de reanudacion', () => {
+    const campaignId = '60000000-0000-4000-8000-000000000001'
+    expect(retryBroadcastSchema.safeParse({ action: 'resume', campaignId }).success).toBe(true)
+    expect(retryBroadcastSchema.safeParse({ action: 'retry_failed', campaignId }).success).toBe(false)
   })
 })

@@ -20,6 +20,8 @@ Este alcance ya se implemento y desplego. El texto original se conserva debajo c
 
 La prueba E2E real devolvio `201`, establecio la sesion HTTP-only, guardo un borrador parcial y termino con una entrega `submitted`. Una segunda prueba de registro confirmo el outbox `sent` al primer intento mediante Resend. Los equipos temporales se eliminaron despues de la verificacion. Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue y se conservan solo como contexto historico.
 
+Una extension posterior agrega acceso de staff, recuperacion y difusion. No forma parte del contrato historico que sigue; su estado, migraciones y verificaciones se mantienen exclusivamente en `docs/IMPLEMENTATION_STATUS.md` para no reabrir este prompt archivado.
+
 El siguiente texto fue la solicitud autocontenida de la iteracion y describe funcionalidades que estaban **pendientes** al redactarse. Usalo ahora como contrato de verificacion, no como fuente del estado desplegado.
 
 ---

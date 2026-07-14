@@ -26,6 +26,9 @@ Work on the platform as a construction event system: the central outcome is a fu
 - Admin, judge, and mentor users authenticate with Supabase Auth and have a `profiles` row.
 - Operational reads currently select the most recently created event. The admin UI edits that event and does not create a new one.
 - Transactional email is deployed and verified with Resend and `registration_email_outbox`. The Marketplace integration, API key, verified sender, reply-to and production base URL are configured in Production.
+- Staff access sends the temporary credential before activating it for an existing account; a provider failure must preserve the previous Auth password. Never exercise bulk notification during migrations, deployment, or verification.
+- Password recovery returns a neutral response and claims HMAC-based email/IP quota atomically. Broadcast retries preserve the original batch payload and idempotency key, and only retry transient failures.
+- The Vercel team uses Hobby. Keep at most 12 files under `api/`; the dynamic Auth and admin dispatchers preserve the public endpoint URLs while sharing Functions.
 
 ## Implementation workflow
 

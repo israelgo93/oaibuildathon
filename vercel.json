@@ -21,6 +21,7 @@
     { "source": "/registro", "destination": "/index.html" },
     { "source": "/equipo", "destination": "/index.html" },
     { "source": "/login", "destination": "/index.html" },
+    { "source": "/cambiar-contrasena", "destination": "/index.html" },
     { "source": "/admin", "destination": "/index.html" },
     { "source": "/jurado", "destination": "/index.html" },
     { "source": "/mentor", "destination": "/index.html" }

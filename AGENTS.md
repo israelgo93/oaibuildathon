@@ -91,10 +91,11 @@ const team = teamRaw as Tables<'teams'>
 ## Estado actual que no debe sobreestimarse
 
 - Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
-- Supabase produccion aplica las siete migraciones locales, incluida `20260714205820_add_challenge_themes.sql`; el historial y los tipos remotos estan reconciliados.
+- Supabase produccion aplica once migraciones locales, incluidas `20260714230812_harden_broadcast_retry_and_idempotency.sql` y `20260714230821_harden_staff_access_and_password_recovery.sql`; el historial y los tipos remotos estan reconciliados.
 - La aplicacion de produccion expone ejes tematicos y temas sugeridos en la configuracion publica, registro, portal del equipo y mentoria. Registro y portal fueron verificados con navegador; el formulario administrativo desplegado y su proteccion se verificaron, pero esta comprobacion no repitio un guardado autenticado por falta de una sesion disponible.
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.
 - Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
+- El arbol local agrega correo de acceso, recuperacion de contrasena y difusion. El esquema esta aplicado sin rotar claves ni enviar mensajes: se conservaron 1 admin, 7 jurados y 5 mentores, todos activos y sin cambio forzado. No describir la UI/API nueva como produccion hasta desplegarla y verificarla; nunca ejecutar las acciones masivas como parte de una prueba.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 
 Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.

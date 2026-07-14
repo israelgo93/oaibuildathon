@@ -20,6 +20,12 @@ Produccion incorpora ejes tematicos y listas de ideas para cada reto. El panel a
 
 La migracion, los tipos, la API publica, el registro y el portal del equipo estan verificados en produccion. Una prueba temporal de recuperacion mostro los 6 ejes y 8 ideas del reto de agentes y elimino todos sus datos al terminar. La ruta administrativa mantiene autenticacion obligatoria y el bundle desplegado contiene ambos campos y sus payloads; esta verificacion no repitio un guardado autenticado porque no habia una sesion administrativa disponible.
 
+## Acceso de staff y difusion
+
+El arbol actual agrega credenciales temporales para staff, cambio obligatorio, recuperacion de contrasena y una seccion administrativa de difusion. Al crear un mentor o jurado, administracion puede escribir una clave temporal o dejar que el servidor genere una de 16 caracteres; el correo se envia con instrucciones segun el rol. Los perfiles existentes se notifican solo mediante una accion explicita individual, de pendientes o masiva. Las acciones masivas excluyen administradores y nunca se ejecutan durante una migracion o despliegue.
+
+La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `email` o `correo`, muestra una vista previa y exige confirmacion. El servidor limita el contenido a texto plano y CTA internas, congela la campana en Supabase y usa lotes Resend de hasta 100 destinatarios con idempotencia estable. Una accion administrativa recupera campanas en cola, interrumpidas o parciales y solo reintenta errores transitorios. Las migraciones de esta capacidad ya estan aplicadas; la UI se considera pendiente de produccion hasta completar el despliegue y la verificacion canonica.
+
 ## Capacidades
 
 - Registro unico por equipo para 1, 2 o 3 participantes.
@@ -29,7 +35,8 @@ La migracion, los tipos, la API publica, el registro y el portal del equipo esta
 - Portal para guardar el proyecto como borrador o enviarlo al jurado.
 - Vitrina publica de proyectos aprobados en la landing.
 - Supabase Auth para administradores, jurados y mentores.
-- Panel administrativo para el evento existente mas reciente, etapas, fechas globales, limites, retos, rubrica, equipos, participantes, staff, asignaciones, proyectos y ranking privado.
+- Clave temporal, cambio obligatorio y recuperacion neutral para cuentas internas.
+- Panel administrativo para el evento existente mas reciente, etapas, fechas globales, limites, retos, rubrica, equipos, participantes, staff, difusion, asignaciones, proyectos y ranking privado.
 - Panel de jurado con formulario dinamico de calificacion.
 - Panel de mentor con equipos, integrantes, reto, avance y enlaces.
 - Rubrica inicial de 100 puntos orientada a construccion.
@@ -38,7 +45,7 @@ La migracion, los tipos, la API publica, el registro y el portal del equipo esta
 ## Limites actuales de produccion
 
 - El panel modifica el evento mas reciente, pero no crea eventos.
-- Staff se crea y lista desde administracion, pero la UI no desactiva, elimina ni restablece usuarios.
+- La UI no desactiva ni elimina usuarios; la notificacion de acceso rota la clave solo despues de una confirmacion administrativa.
 - El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
 - El registro manual que reutiliza `/api/registrations` todavia no crea una entrada propia de auditoria administrativa.
 - No existe webhook de entrega, rebote o queja; el estado `sent` confirma que Resend acepto el mensaje, no su entrega final en el buzon.
@@ -53,6 +60,7 @@ Supabase contiene el deadline por reto, el outbox y las invariantes nuevas. La a
 | `/registro` | Registro global de un equipo |
 | `/equipo` | Recuperacion de sesion y entrega del proyecto |
 | `/login` | Acceso de organizacion, jurado y mentores |
+| `/cambiar-contrasena` | Cambio obligatorio o recuperacion de una cuenta interna |
 | `/admin` | Centro de control de la Buildathon |
 | `/jurado` | Evaluacion de equipos asignados |
 | `/mentor` | Seguimiento de equipos asignados |
@@ -145,6 +153,10 @@ El historial aplicado es:
 5. `supabase/migrations/20260714131931_index_registration_email_outbox_team_event.sql`: indice compuesto para la clave foranea del outbox.
 6. `supabase/migrations/20260714132323_fix_assignment_role_trigger.sql`: corrige el trigger compartido para asignar jurados y mentores sin acceder a columnas de la otra tabla.
 7. `supabase/migrations/20260714205820_add_challenge_themes.sql`: agrega `thematic_axes text[]` y `suggested_topics text[]`, precarga los tres retos y limita el numero de elementos de cada lista.
+8. `supabase/migrations/20260714223749_add_staff_access_and_broadcasts.sql`: agrega estado de credenciales, rate limit con HMAC, campanas/destinatarios de difusion, RLS, grants exclusivos de servidor y funciones atomicas.
+9. `supabase/migrations/20260714224056_index_broadcast_campaign_foreign_keys.sql`: cubre las claves foraneas de evento y creador de campana.
+10. `supabase/migrations/20260714230812_harden_broadcast_retry_and_idempotency.sql`: agrega clasificacion de errores, claves idempotentes persistidas y reanudacion atomica de campanas interrumpidas.
+11. `supabase/migrations/20260714230821_harden_staff_access_and_password_recovery.sql`: preserva el cambio obligatorio durante la activacion y reclama de forma atomica la cuota de recuperacion por correo e IP.
 
 No edites migraciones aplicadas; crea una nueva con:
 
@@ -158,7 +170,7 @@ En Supabase Dashboard:
 
 - Deshabilita el registro publico de usuarios.
 - Configura el Site URL de produccion y las URLs de preview autorizadas.
-- Usa contrasenas de al menos 10 caracteres.
+- Usa contrasenas de al menos 12 caracteres en los flujos de alta y recuperacion.
 - Crea staff desde `/admin`; no crees participantes como usuarios Auth.
 
 ### 3. Variables
@@ -175,7 +187,7 @@ Copia `.env.example` y completa solo el archivo local ignorado por Git:
 | `VITE_TURNSTILE_SITE_KEY` | Navegador, opcional | Widget anti-bots |
 | `TURNSTILE_SECRET_KEY` | Servidor, opcional | Verificacion anti-bots |
 | `RESEND_API_KEY` | Servidor | Credencial de Resend; instalar mediante Vercel Marketplace |
-| `RESEND_FROM` | Servidor | Remitente sobre dominio verificado |
+| `RESEND_FROM` | Servidor | Debe ser `OpenAI Build Week Manta <noreply@datatensei.ai>` |
 | `RESEND_REPLY_TO` | Servidor | Correo real de soporte u organizacion |
 | `APP_BASE_URL` | Servidor | URL canonica HTTPS usada en correos; produccion usa `https://oaibuildathon.vercel.app` |
 
@@ -241,13 +253,13 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 3. No pegues secretos en comandos, commits, issues o logs compartidos; usa el formulario seguro de Vercel o `vercel env add` de forma interactiva.
 4. Despliega y valida `/`, `/registro`, `/equipo`, `/login` y los paneles por rol.
 
-`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions.
+`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions. El proyecto usa el plan Hobby: para respetar su limite de 12 Functions por deployment, `/api/auth/me` y `/api/auth/password-recovery` comparten un entrypoint dinamico, al igual que `/api/admin/broadcasts` y `/api/admin/staff-access`; las URLs, metodos y controles de autorizacion no cambian.
 
 ## Flujo operativo recomendado
 
 1. Administracion revisa fechas, abre registro y publica los retos.
 2. Una persona registra cada equipo completo.
-3. Administracion crea mentores y jurados y realiza asignaciones.
+3. Administracion crea mentores y jurados, confirma el envio de sus accesos y realiza asignaciones.
 4. Los equipos construyen y completan su entrega.
 5. Administracion abre la etapa de calificacion.
 6. Los jurados califican todos los criterios de sus equipos.
@@ -257,6 +269,12 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 ## Correo de registro con Resend
 
 El repositorio incluye el SDK de Resend, plantilla HTML/texto, idempotencia, reintentos clasificados y un outbox creado en la misma transaccion del registro. Un fallo de correo no revierte ni duplica el equipo, y administracion puede reintentar pendientes. Resend esta autorizado desde Vercel Marketplace; `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO` y `APP_BASE_URL` estan configuradas en Production. Un registro real termino con estado `sent`, un intento e ID de proveedor. Preview debe usar configuracion separada para no enviar correos reales. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+
+## Correo de acceso, recuperacion y difusion
+
+Las claves temporales se generan con criptografia del servidor y nunca se guardan en tablas, auditoria, respuestas o logs. Para cuentas existentes, Resend debe aceptar primero el correo y solo entonces se activa la clave nueva; si el proveedor falla, la clave anterior permanece valida. Cada reenvio marca cambio obligatorio en `profiles` y un trigger sobre Auth libera el bloqueo cuando el usuario cambia realmente su contrasena. La temporalidad se garantiza por ese cambio obligatorio, no por una fecha de vencimiento que Supabase Auth no pueda hacer cumplir. La recuperacion publica responde siempre con el mismo `202`, exista o no la cuenta, reclama atomicamente limites por hashes HMAC de correo/IP y envia un enlace de Supabase Auth mediante Resend.
+
+Las campanas guardan asunto, mensaje plano, CTA interna y destinatarios normalizados. `sent` significa aceptacion de Resend, no entrega final. No se usa CC/BCC ni se permite enviar HTML, remitentes o URLs arbitrarias desde el navegador.
 
 ## Assets de la landing
 
@@ -288,6 +306,7 @@ Los criterios, maximos, pesos y estados son configurables. El ranking usa el pro
 - Los registros de equipos se crean en una funcion SQL transaccional.
 - Correos de participantes no forman parte de la vitrina publica.
 - Los tokens de sesion se guardan como HMAC y viajan en cookies HTTP-only.
+- Los rate limits de recuperacion guardan HMAC de correo e IP, nunca los valores originales.
 - Las respuestas publicas proyectan solo campos aprobados.
 - CSP, HSTS, proteccion contra iframes y politicas de permisos se configuran en Vercel.
 - Turnstile puede activarse para el registro publico sin cambiar el codigo.

@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom'
 import { authenticatedApiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { BroadcastSection } from '@/pages/BroadcastSection'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
 import { ecuadorDateTimeInputValue, ecuadorDateTimeToIso, effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
-import type { AdminAction, AdminDashboardData, CreateStaffInput, RegistrationInput, RegistrationResult } from '@/types/api'
+import type { AdminAction, AdminDashboardData, CreateStaffInput, CreateStaffResult, RegistrationInput, RegistrationResult, StaffAccessAction, StaffAccessResult } from '@/types/api'
 import type { Tables } from '@/types/database'
 
-type AdminTab = 'summary' | 'event' | 'challenges' | 'teams' | 'staff' | 'assignments' | 'projects' | 'results'
+type AdminTab = 'summary' | 'event' | 'challenges' | 'teams' | 'staff' | 'broadcast' | 'assignments' | 'projects' | 'results'
 
 interface AdminSectionProps {
   dashboard: AdminDashboardData
@@ -21,6 +22,7 @@ const tabs: { id: AdminTab; label: string }[] = [
   { id: 'challenges', label: 'Retos y rubrica' },
   { id: 'teams', label: 'Equipos' },
   { id: 'staff', label: 'Personas' },
+  { id: 'broadcast', label: 'Difusion' },
   { id: 'assignments', label: 'Asignaciones' },
   { id: 'projects', label: 'Proyectos' },
   { id: 'results', label: 'Resultados' },
@@ -320,20 +322,134 @@ function TeamsSection({ dashboard, mutate, reload }: AdminSectionProps & { reloa
 
 function StaffSection({ dashboard, reload }: { dashboard: AdminDashboardData; reload: () => Promise<void> }) {
   const [message, setMessage] = useState('')
+  const [isError, setIsError] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [role, setRole] = useState<CreateStaffInput['role']>('judge')
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formElement = event.currentTarget
     const form = new FormData(formElement)
-    const input: CreateStaffInput = { fullName: formText(form, 'fullName'), email: formText(form, 'email'), password: formText(form, 'password'), role: formText(form, 'role') as CreateStaffInput['role'] }
+    const password = String(form.get('password') ?? '')
+    const input: CreateStaffInput = { fullName: formText(form, 'fullName'), email: formText(form, 'email'), role }
+    if (password) input.password = password
+    setLoading(true)
     try {
-      await authenticatedApiRequest('/api/admin/staff', { method: 'POST', body: JSON.stringify(input) })
-      setMessage('Usuario creado correctamente.')
+      const result = await authenticatedApiRequest<CreateStaffResult>('/api/admin/staff', { method: 'POST', body: JSON.stringify(input) })
+      setIsError(!result.emailSent)
+      setMessage(result.emailSent ? 'Usuario creado y acceso enviado correctamente.' : 'Usuario creado, pero el correo de acceso fallo. Puedes reintentarlo desde la tabla.')
       formElement.reset()
+      setRole('judge')
       await reload()
-    } catch (error) { setMessage(errorMessage(error)) }
+    } catch (error) { setIsError(true); setMessage(errorMessage(error)) }
+    finally { setLoading(false) }
   }
 
-  return <div className="admin-stack"><form className="system-card system-form admin-form" onSubmit={(event) => void submit(event)}><div className="form-section-heading"><h2>Crear administrador, jurado o mentor</h2><p>La contrasena se entrega por un canal seguro y debe cambiarse segun la politica del evento.</p></div>{message ? <StatusMessage>{message}</StatusMessage> : null}<div className="form-grid"><label>Nombre<input name="fullName" required /></label><label>Correo<input name="email" type="email" required /></label><label>Rol<select name="role"><option value="judge">Jurado</option><option value="mentor">Mentor</option><option value="admin">Administrador</option></select></label><label>Contrasena temporal<input name="password" type="password" minLength={10} required /></label></div><button className="system-button system-button-primary" type="submit">Crear usuario</button></form><section className="system-card table-card"><div className="admin-section-heading"><h2>Equipo operativo</h2><span>{dashboard.profiles.length} personas</span></div><div className="responsive-table"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th></tr></thead><tbody>{dashboard.profiles.map((profile) => <tr key={profile.id}><td>{profile.full_name}</td><td>{profile.email}</td><td>{profile.role}</td><td>{profile.active ? 'Activo' : 'Inactivo'}</td></tr>)}</tbody></table></div></section></div>
+  const notify = async (action: StaffAccessAction) => {
+    setLoading(true); setMessage(''); setIsError(false)
+    try {
+      const result = await authenticatedApiRequest<StaffAccessResult>('/api/admin/staff-access', { method: 'POST', body: JSON.stringify(action) })
+      setIsError(result.failed > 0)
+      setMessage(`Proceso terminado: ${result.sent} enviados y ${result.failed} fallidos de ${result.total}.`)
+      await reload()
+    } catch (error) { setIsError(true); setMessage(errorMessage(error)) }
+    finally { setLoading(false) }
+  }
+
+  const notifyPending = () => {
+    if (window.confirm('Se generara una nueva clave temporal solo para mentores y jurados activos que aun no tienen un correo enviado. Deseas continuar?')) {
+      void notify({ action: 'notify_unnotified', confirmation: 'NOTIFICAR' })
+    }
+  }
+
+  const notifyAll = () => {
+    if (window.confirm('Esta accion rotara la clave de TODOS los mentores y jurados activos, incluso si ya fueron notificados. Los administradores no seran modificados. Deseas continuar?')) {
+      void notify({ action: 'notify_all', confirmation: 'ROTAR CLAVES' })
+    }
+  }
+
+  return (
+    <div className="admin-stack">
+      <form className="system-card system-form admin-form" onSubmit={(event) => void submit(event)}>
+        <div className="form-section-heading">
+          <h2>Crear administrador, jurado o mentor</h2>
+          <p>Para jurados y mentores puedes dejar la clave vacia: el servidor generara una segura, la enviara por correo y exigira cambiarla al ingresar.</p>
+        </div>
+        <RequiredFieldsLegend />
+        {message ? <StatusMessage kind={isError ? 'error' : 'success'}>{message}</StatusMessage> : null}
+        <div className="form-grid">
+          <label><RequiredFieldLabel>Nombre</RequiredFieldLabel><input name="fullName" required /></label>
+          <label><RequiredFieldLabel>Correo</RequiredFieldLabel><input name="email" type="email" required /></label>
+          <label>
+            <RequiredFieldLabel>Rol</RequiredFieldLabel>
+            <select name="role" value={role} required onChange={(event) => setRole(event.target.value as CreateStaffInput['role'])}>
+              <option value="judge">Jurado</option>
+              <option value="mentor">Mentor</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </label>
+          <label>
+            {role === 'admin'
+              ? <RequiredFieldLabel>Contrasena temporal</RequiredFieldLabel>
+              : <OptionalFieldLabel>Contrasena temporal</OptionalFieldLabel>}
+            <input
+              name="password"
+              type="password"
+              minLength={12}
+              required={role === 'admin'}
+              autoComplete="new-password"
+              placeholder={role === 'admin' ? 'Minimo 12 caracteres' : 'Se genera automaticamente si queda vacia'}
+            />
+          </label>
+        </div>
+        <button className="system-button system-button-primary" type="submit" disabled={loading}>
+          {loading ? 'Procesando...' : 'Crear usuario y enviar acceso'}
+        </button>
+      </form>
+      <section className="system-card table-card">
+        <div className="admin-section-heading">
+          <div><h2>Equipo operativo</h2><p>Las acciones masivas nunca incluyen administradores y solo se ejecutan al confirmarlas.</p></div>
+          <span>{dashboard.profiles.length} personas</span>
+        </div>
+        <div className="staff-bulk-actions">
+          <button className="system-button" type="button" disabled={loading} onClick={notifyPending}>Notificar pendientes</button>
+          <button className="system-button" type="button" disabled={loading} onClick={notifyAll}>Rotar y notificar a todos</button>
+        </div>
+        <div className="responsive-table">
+          <table>
+            <thead><tr><th scope="col">Nombre</th><th scope="col">Correo</th><th scope="col">Rol</th><th scope="col">Estado</th><th scope="col">Acceso</th><th scope="col">Accion</th></tr></thead>
+            <tbody>{dashboard.profiles.map((profile) => (
+              <tr key={profile.id}>
+                <td>{profile.full_name}</td>
+                <td>{profile.email}</td>
+                <td>{profile.role}</td>
+                <td>{profile.active ? 'Activo' : 'Inactivo'}</td>
+                <td>
+                  <span className={`status-pill status-${profile.access_email_status}`}>{profile.access_email_status}</span>
+                  {profile.access_email_sent_at ? <small>{formatEcuadorDateTime(profile.access_email_sent_at)}</small> : null}
+                </td>
+                <td>
+                  {profile.active && (profile.role === 'judge' || profile.role === 'mentor') ? (
+                    <button
+                      className="system-link-button"
+                      type="button"
+                      disabled={loading}
+                      onClick={() => {
+                        if (window.confirm(`Se generara y enviara una nueva clave temporal a ${profile.full_name}. Deseas continuar?`)) {
+                          void notify({ action: 'notify_one', profileId: profile.id })
+                        }
+                      }}
+                    >
+                      Generar y enviar acceso
+                    </button>
+                  ) : 'Sin accion masiva'}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 function AssignmentsSection({ dashboard, mutate }: AdminSectionProps) {
@@ -407,6 +523,7 @@ export function AdminPage() {
       case 'challenges': return <ChallengesSection dashboard={dashboard} mutate={mutate} />
       case 'teams': return <TeamsSection dashboard={dashboard} mutate={mutate} reload={loadDashboard} />
       case 'staff': return <StaffSection dashboard={dashboard} reload={loadDashboard} />
+      case 'broadcast': return dashboard.events[0] ? <BroadcastSection eventId={dashboard.events[0].id} /> : <StatusMessage kind="error">No existe un evento configurado.</StatusMessage>
       case 'assignments': return <AssignmentsSection dashboard={dashboard} mutate={mutate} />
       case 'projects': return <ProjectsSection dashboard={dashboard} mutate={mutate} />
       case 'results': return <ResultsSection dashboard={dashboard} />

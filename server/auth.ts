@@ -20,7 +20,7 @@ function getBearerToken(request: ApiRequest): string {
   return token
 }
 
-export async function requireRole(request: ApiRequest, allowedRoles: UserRole[]): Promise<AuthorizedUser> {
+export async function requireAuthenticatedProfile(request: ApiRequest): Promise<AuthorizedUser> {
   const supabase = getServerSupabase()
   const token = getBearerToken(request)
   const { data: userData, error: userError } = await supabase.auth.getUser(token)
@@ -40,8 +40,8 @@ export async function requireRole(request: ApiRequest, allowedRoles: UserRole[])
   }
 
   const profile = profileRaw as Tables<'profiles'>
-  if (!profile.active || !allowedRoles.includes(profile.role)) {
-    throw new HttpError(403, 'No tienes permisos para realizar esta accion')
+  if (!profile.active) {
+    throw new HttpError(403, 'El perfil no esta activo')
   }
 
   return {
@@ -51,6 +51,22 @@ export async function requireRole(request: ApiRequest, allowedRoles: UserRole[])
       role: profile.role,
       fullName: profile.full_name,
       email: profile.email,
+      mustChangePassword: profile.must_change_password,
+      temporaryPasswordExpiresAt: profile.temporary_password_expires_at,
     },
   }
+}
+
+export async function requireRole(request: ApiRequest, allowedRoles: UserRole[]): Promise<AuthorizedUser> {
+  const authorizedUser = await requireAuthenticatedProfile(request)
+
+  if (authorizedUser.profile.must_change_password) {
+    throw new HttpError(428, 'Debes cambiar tu contrasena temporal antes de continuar')
+  }
+
+  if (!allowedRoles.includes(authorizedUser.profile.role)) {
+    throw new HttpError(403, 'No tienes permisos para realizar esta accion')
+  }
+
+  return authorizedUser
 }

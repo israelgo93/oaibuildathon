@@ -52,6 +52,140 @@ export type Database = {
           },
         ]
       }
+      broadcast_campaigns: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_key: string
+          dispatch_version: number
+          event_id: string
+          failed_count: number
+          id: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_key: string
+          dispatch_version?: number
+          event_id: string
+          failed_count?: number
+          id?: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          cta_key?: string
+          dispatch_version?: number
+          event_id?: string
+          failed_count?: number
+          id?: string
+          message_text?: string
+          recipient_count?: number
+          request_id?: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_campaigns_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_campaigns_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_recipients: {
+        Row: {
+          attempts: number
+          batch_number: number
+          batch_position: number
+          campaign_id: string
+          created_at: string
+          email: string
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          last_status_code: number | null
+          provider_id: string | null
+          retryable: boolean
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          batch_number: number
+          batch_position: number
+          campaign_id: string
+          created_at?: string
+          email: string
+          id?: string
+          idempotency_key: string
+          last_error_code?: string | null
+          last_status_code?: number | null
+          provider_id?: string | null
+          retryable?: boolean
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          batch_number?: number
+          batch_position?: number
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          idempotency_key?: string
+          last_error_code?: string | null
+          last_status_code?: number | null
+          provider_id?: string | null
+          retryable?: boolean
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "broadcast_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       challenges: {
         Row: {
           active: boolean
@@ -62,8 +196,8 @@ export type Database = {
           max_teams: number | null
           requirements: string
           sort_order: number
-          suggested_topics: string[]
           submission_deadline_at: string
+          suggested_topics: string[]
           thematic_axes: string[]
           title: string
           updated_at: string
@@ -77,8 +211,8 @@ export type Database = {
           max_teams?: number | null
           requirements?: string
           sort_order?: number
-          suggested_topics?: string[]
           submission_deadline_at: string
+          suggested_topics?: string[]
           thematic_axes?: string[]
           title: string
           updated_at?: string
@@ -92,8 +226,8 @@ export type Database = {
           max_teams?: number | null
           requirements?: string
           sort_order?: number
-          suggested_topics?: string[]
           submission_deadline_at?: string
+          suggested_topics?: string[]
           thematic_axes?: string[]
           title?: string
           updated_at?: string
@@ -428,32 +562,80 @@ export type Database = {
           },
         ]
       }
+      password_reset_requests: {
+        Row: {
+          email_hash: string
+          id: string
+          ip_hash: string
+          outcome: string
+          requested_at: string
+        }
+        Insert: {
+          email_hash: string
+          id?: string
+          ip_hash: string
+          outcome?: string
+          requested_at?: string
+        }
+        Update: {
+          email_hash?: string
+          id?: string
+          ip_hash?: string
+          outcome?: string
+          requested_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          access_email_attempted_at: string | null
+          access_email_error_code: string | null
+          access_email_sent_at: string | null
+          access_email_status: string
           active: boolean
           created_at: string
+          credential_version: number
           email: string
           full_name: string
           id: string
+          must_change_password: boolean
+          password_changed_at: string | null
           role: Database["public"]["Enums"]["user_role"]
+          temporary_password_expires_at: string | null
           updated_at: string
         }
         Insert: {
+          access_email_attempted_at?: string | null
+          access_email_error_code?: string | null
+          access_email_sent_at?: string | null
+          access_email_status?: string
           active?: boolean
           created_at?: string
+          credential_version?: number
           email: string
           full_name: string
           id: string
+          must_change_password?: boolean
+          password_changed_at?: string | null
           role: Database["public"]["Enums"]["user_role"]
+          temporary_password_expires_at?: string | null
           updated_at?: string
         }
         Update: {
+          access_email_attempted_at?: string | null
+          access_email_error_code?: string | null
+          access_email_sent_at?: string | null
+          access_email_status?: string
           active?: boolean
           created_at?: string
+          credential_version?: number
           email?: string
           full_name?: string
           id?: string
+          must_change_password?: boolean
+          password_changed_at?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          temporary_password_expires_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -732,6 +914,78 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_broadcast_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_key: string
+          dispatch_version: number
+          event_id: string
+          failed_count: number
+          id: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "broadcast_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      claim_password_reset_request: {
+        Args: {
+          p_email_hash: string
+          p_email_limit: number
+          p_ip_hash: string
+          p_ip_limit: number
+          p_window_minutes: number
+        }
+        Returns: string
+      }
+      create_broadcast_campaign: {
+        Args: {
+          p_created_by: string
+          p_cta_key: string
+          p_event_id: string
+          p_message_text: string
+          p_recipients: Json
+          p_request_id: string
+          p_subject: string
+        }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_key: string
+          dispatch_version: number
+          event_id: string
+          failed_count: number
+          id: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "broadcast_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_team: {
         Args: {
           p_challenge_id: string
@@ -763,6 +1017,33 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "teams"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      resume_broadcast_campaign: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_key: string
+          dispatch_version: number
+          event_id: string
+          failed_count: number
+          id: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "broadcast_campaigns"
           isOneToOne: true
           isSetofReturn: false
         }
