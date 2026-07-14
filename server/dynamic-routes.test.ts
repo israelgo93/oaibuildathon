@@ -18,8 +18,14 @@ vi.mock('./routes/admin-staff-access.js', () => ({ default: routeSpies.staffAcce
 import handleAdminRoute from '../api/admin/[action].js'
 import handleAuthRoute from '../api/auth/[action].js'
 
-function createRequest(action: string | string[] | undefined): ApiRequest {
-  return { query: { action } } as unknown as ApiRequest
+function createRequest(url: string | undefined): ApiRequest {
+  const request = { url } as unknown as ApiRequest
+  Object.defineProperty(request, 'query', {
+    get() {
+      throw new Error('El dispatcher no debe consultar request.query')
+    },
+  })
+  return request
 }
 
 function createResponse() {
@@ -48,8 +54,8 @@ function collectApiEntrypoints(directory: string): string[] {
   })
 }
 
-async function expectNotFound(handler: ApiHandler, action: string | string[] | undefined): Promise<void> {
-  const request = createRequest(action)
+async function expectNotFound(handler: ApiHandler, url: string | undefined): Promise<void> {
+  const request = createRequest(url)
   const { response, setHeader, status, json } = createResponse()
 
   await handler(request, response)
@@ -65,32 +71,45 @@ describe('dispatchers dinamicos de Vercel', () => {
   })
 
   it('despacha las dos acciones de autenticacion sin cambiar request ni response', async () => {
-    const meRequest = createRequest('me')
+    const meRequest = createRequest('/api/auth/me')
     const meResponse = createResponse().response
     await handleAuthRoute(meRequest, meResponse)
-    expect(routeSpies.authMe).toHaveBeenCalledWith(meRequest, meResponse)
+    expect(routeSpies.authMe).toHaveBeenCalledTimes(1)
+    const meCall = routeSpies.authMe.mock.calls[0] as unknown as [ApiRequest, ApiResponse]
+    expect(meCall[0]).toBe(meRequest)
+    expect(meCall[1]).toBe(meResponse)
 
-    const recoveryRequest = createRequest('password-recovery')
+    const recoveryRequest = createRequest('/api/auth/password-recovery?source=login')
     const recoveryResponse = createResponse().response
     await handleAuthRoute(recoveryRequest, recoveryResponse)
-    expect(routeSpies.passwordRecovery).toHaveBeenCalledWith(recoveryRequest, recoveryResponse)
+    expect(routeSpies.passwordRecovery).toHaveBeenCalledTimes(1)
+    const recoveryCall = routeSpies.passwordRecovery.mock.calls[0] as unknown as [ApiRequest, ApiResponse]
+    expect(recoveryCall[0]).toBe(recoveryRequest)
+    expect(recoveryCall[1]).toBe(recoveryResponse)
   })
 
   it('despacha las dos acciones administrativas sin cambiar request ni response', async () => {
-    const broadcastsRequest = createRequest('broadcasts')
+    const broadcastsRequest = createRequest('/api/admin/broadcasts')
     const broadcastsResponse = createResponse().response
     await handleAdminRoute(broadcastsRequest, broadcastsResponse)
-    expect(routeSpies.broadcasts).toHaveBeenCalledWith(broadcastsRequest, broadcastsResponse)
+    expect(routeSpies.broadcasts).toHaveBeenCalledTimes(1)
+    const broadcastsCall = routeSpies.broadcasts.mock.calls[0] as unknown as [ApiRequest, ApiResponse]
+    expect(broadcastsCall[0]).toBe(broadcastsRequest)
+    expect(broadcastsCall[1]).toBe(broadcastsResponse)
 
-    const staffRequest = createRequest('staff-access')
+    const staffRequest = createRequest('/api/admin/staff-access')
     const staffResponse = createResponse().response
     await handleAdminRoute(staffRequest, staffResponse)
-    expect(routeSpies.staffAccess).toHaveBeenCalledWith(staffRequest, staffResponse)
+    expect(routeSpies.staffAccess).toHaveBeenCalledTimes(1)
+    const staffCall = routeSpies.staffAccess.mock.calls[0] as unknown as [ApiRequest, ApiResponse]
+    expect(staffCall[0]).toBe(staffRequest)
+    expect(staffCall[1]).toBe(staffResponse)
   })
 
   it('responde 404 privado para acciones desconocidas o ambiguas', async () => {
-    await expectNotFound(handleAuthRoute, 'otra')
-    await expectNotFound(handleAuthRoute, ['me', 'otra'])
+    await expectNotFound(handleAuthRoute, '/api/auth/otra')
+    await expectNotFound(handleAuthRoute, '/api/admin/me')
+    await expectNotFound(handleAdminRoute, '/api/admin/%E0%A4%A')
     await expectNotFound(handleAdminRoute, undefined)
     expect(routeSpies.authMe).not.toHaveBeenCalled()
     expect(routeSpies.passwordRecovery).not.toHaveBeenCalled()

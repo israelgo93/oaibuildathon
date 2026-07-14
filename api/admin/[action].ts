@@ -1,5 +1,6 @@
 import type { ApiHandler, ApiResponse } from '../../server/types.js'
 import { setPrivateResponse } from '../../server/http.js'
+import { dynamicRouteAction } from '../../server/request-path.js'
 import handleBroadcasts from '../../server/routes/admin-broadcasts.js'
 import handleStaffAccess from '../../server/routes/admin-staff-access.js'
 
@@ -21,8 +22,8 @@ function respondNotFound(response: ApiResponse): void {
 }
 
 const handler: ApiHandler = async (request, response) => {
-  const rawAction = request.query.action
-  if (typeof rawAction !== 'string' || !isAdminRouteAction(rawAction)) {
+  const rawAction = dynamicRouteAction(request, 'admin')
+  if (!isAdminRouteAction(rawAction)) {
     respondNotFound(response)
     return
   }

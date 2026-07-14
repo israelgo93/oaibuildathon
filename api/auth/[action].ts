@@ -1,5 +1,6 @@
 import type { ApiHandler, ApiResponse } from '../../server/types.js'
 import { setPrivateResponse } from '../../server/http.js'
+import { dynamicRouteAction } from '../../server/request-path.js'
 import handleAuthMe from '../../server/routes/auth-me.js'
 import handlePasswordRecovery from '../../server/routes/auth-password-recovery.js'
 
@@ -21,8 +22,8 @@ function respondNotFound(response: ApiResponse): void {
 }
 
 const handler: ApiHandler = async (request, response) => {
-  const rawAction = request.query.action
-  if (typeof rawAction !== 'string' || !isAuthRouteAction(rawAction)) {
+  const rawAction = dynamicRouteAction(request, 'auth')
+  if (!isAuthRouteAction(rawAction)) {
     respondNotFound(response)
     return
   }
