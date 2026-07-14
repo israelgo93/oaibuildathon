@@ -193,17 +193,19 @@ function ChallengesSection({ dashboard, mutate }: AdminSectionProps) {
 
   const createChallenge = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
-    const form = new FormData(submitEvent.currentTarget)
+    const formElement = submitEvent.currentTarget
+    const form = new FormData(formElement)
     const capacity = formText(form, 'maxTeams')
     await mutate({ action: 'create_challenge', eventId: event.id, title: formText(form, 'title'), description: formText(form, 'description'), requirements: formText(form, 'requirements'), maxTeams: capacity ? Number(capacity) : null, submissionDeadlineAt: ecuadorDateTimeToIso(formText(form, 'submissionDeadlineAt')) })
-    submitEvent.currentTarget.reset()
+    formElement.reset()
   }
 
   const createCriterion = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
-    const form = new FormData(submitEvent.currentTarget)
+    const formElement = submitEvent.currentTarget
+    const form = new FormData(formElement)
     await mutate({ action: 'create_criterion', eventId: event.id, name: formText(form, 'name'), description: formText(form, 'description'), maxScore: Number(form.get('maxScore')), weight: Number(form.get('weight')) })
-    submitEvent.currentTarget.reset()
+    formElement.reset()
   }
 
   const activeMaxScore = dashboard.criteria.filter((criterion) => criterion.active).reduce((total, criterion) => total + criterion.max_score * criterion.weight, 0)
@@ -225,7 +227,8 @@ function ManualTeamForm({ dashboard, reload }: { dashboard: AdminDashboardData; 
 
   const submit = async (submitEvent: FormEvent<HTMLFormElement>) => {
     submitEvent.preventDefault()
-    const form = new FormData(submitEvent.currentTarget)
+    const formElement = submitEvent.currentTarget
+    const form = new FormData(formElement)
     const email = formText(form, 'email')
     const phone = formText(form, 'phone')
     const city = formText(form, 'city')
@@ -243,7 +246,7 @@ function ManualTeamForm({ dashboard, reload }: { dashboard: AdminDashboardData; 
     try {
       const created = await authenticatedApiRequest<RegistrationResult>('/api/registrations', { method: 'POST', body: JSON.stringify(input) })
       setMessage(`Equipo creado. Codigo: ${created.registrationCode}`)
-      submitEvent.currentTarget.reset()
+      formElement.reset()
       await reload()
     } catch (error) {
       setMessage(errorMessage(error))
@@ -273,9 +276,10 @@ function TeamsSection({ dashboard, mutate, reload }: AdminSectionProps & { reloa
   const addMember = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selectedTeam) return
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     await mutate({ action: 'add_member', teamId: selectedTeam.id, eventId: selectedTeam.event_id, fullName: formText(form, 'fullName'), email: formText(form, 'email'), phone: formText(form, 'phone'), city: formText(form, 'city'), memberRole: formText(form, 'memberRole') })
-    event.currentTarget.reset()
+    formElement.reset()
   }
 
   return (
@@ -297,12 +301,13 @@ function StaffSection({ dashboard, reload }: { dashboard: AdminDashboardData; re
   const [message, setMessage] = useState('')
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const form = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const form = new FormData(formElement)
     const input: CreateStaffInput = { fullName: formText(form, 'fullName'), email: formText(form, 'email'), password: formText(form, 'password'), role: formText(form, 'role') as CreateStaffInput['role'] }
     try {
       await authenticatedApiRequest('/api/admin/staff', { method: 'POST', body: JSON.stringify(input) })
       setMessage('Usuario creado correctamente.')
-      event.currentTarget.reset()
+      formElement.reset()
       await reload()
     } catch (error) { setMessage(errorMessage(error)) }
   }
