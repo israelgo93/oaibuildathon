@@ -12,7 +12,7 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
 - Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
-La siguiente iteracion esta **implementada y verificada localmente**, pero todavia no esta desplegada: incluye obligatorios visibles, entrega final estricta, selector de tecnologias, deadline por reto, restricciones adicionales para jurado y correo de confirmacion con Resend. La migracion nueva aun debe aplicarse y Resend debe instalarse/configurarse en Vercel antes de describir estas capacidades como disponibles en produccion.
+La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y outbox de confirmacion con Resend. Las seis migraciones y los tipos remotos estan reconciliados. La integracion de Resend y `APP_BASE_URL` ya existen en Production; falta verificar el dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO` para entregar correos reales.
 
 ## Capacidades
 
@@ -31,13 +31,12 @@ La siguiente iteracion esta **implementada y verificada localmente**, pero todav
 ## Limites actuales de produccion
 
 - El panel modifica el evento mas reciente, pero no crea eventos.
-- Existe `events.submissions_close_at`, aunque la API de equipos todavia no bloquea por esa hora y los retos no tienen deadline propio.
-- El jurado recibe sus equipos asignados incluso si la entrega sigue en borrador; `submitted_at` no se muestra ni se exige una entrega final antes de calificar.
-- Tecnologias se captura como texto libre; para enviar basta demo **o** repositorio.
+- Staff se crea y lista desde administracion, pero la UI no desactiva, elimina ni restablece usuarios.
 - El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
-- No existe integracion de correo transaccional. El codigo de equipo se muestra al terminar el registro.
+- El registro manual que reutiliza `/api/registrations` todavia no crea una entrada propia de auditoria administrativa.
+- El correo queda pendiente en el outbox hasta configurar un dominio verificado, `RESEND_FROM` y `RESEND_REPLY_TO`.
 
-Supabase ya contiene el deadline por reto, el outbox y las invariantes nuevas. El codigo local cierra las brechas de interfaz y API, pero sigue pendiente de despliegue y verificacion en Vercel. El detalle verificable esta en la documentacion de estado y en el prompt de siguiente iteracion.
+Supabase contiene el deadline por reto, el outbox y las invariantes nuevas. La aplicacion publicada hace cumplir los deadlines, oculta borradores al jurado y exige una entrega final completa. El detalle verificable esta en la documentacion de estado y en el prompt archivado de la iteracion.
 
 ## Rutas
 
@@ -81,7 +80,7 @@ La clave legada `service_role` no es necesaria para esta implementacion. Si un p
 - Three.js para la escena ambiental de la landing.
 - Vercel Functions para la API.
 - Supabase Postgres y Supabase Auth.
-- Resend para correo transaccional mediante outbox (codigo listo; proveedor y variables pendientes).
+- Resend para correo transaccional mediante outbox (integracion activa; remitente y reply-to pendientes).
 - Zod para contratos de entrada.
 - Vitest para reglas de dominio.
 
@@ -249,7 +248,7 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 
 ## Correo de registro con Resend
 
-El repositorio ya incluye el SDK de Resend, plantilla HTML/texto, idempotencia, reintentos clasificados y un outbox creado en la misma transaccion del registro. Un fallo de correo no revierte ni duplica el equipo, y administracion puede reintentar pendientes. Para habilitar el envio, instala/autoriza Resend desde Vercel Marketplace, configura `RESEND_FROM` y `RESEND_REPLY_TO`, y verifica SPF/DKIM del dominio remitente. Preview debe usar configuracion separada para no enviar correos reales. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+El repositorio incluye el SDK de Resend, plantilla HTML/texto, idempotencia, reintentos clasificados y un outbox creado en la misma transaccion del registro. Un fallo de correo no revierte ni duplica el equipo, y administracion puede reintentar pendientes. Resend ya esta autorizado desde Vercel Marketplace, `RESEND_API_KEY` esta disponible y `APP_BASE_URL` apunta a produccion. Para habilitar la entrega real falta verificar SPF/DKIM del dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO` con direcciones reales. Preview debe usar configuracion separada para no enviar correos reales. El contrato completo esta en [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
 ## Assets de la landing
 

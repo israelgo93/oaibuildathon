@@ -6,7 +6,7 @@ OpenAI Build Week Manta combina una landing publica con una plataforma operativa
 
 ## Estado de producto
 
-La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). El alcance de [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md) ya esta implementado y verificado en el arbol local: indicadores de obligatorio, entrega final estricta, tecnologias seleccionables, deadline por reto, acceso correcto del jurado y correo de confirmacion. Las migraciones y los tipos remotos ya estan reconciliados; la experiencia completa todavia no debe describirse como desplegada hasta publicar y verificar la aplicacion. El envio de correo seguira inactivo hasta configurar Resend.
+La fuente de verdad sobre lo disponible es [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md). El alcance de [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion: indicadores de obligatorio, borrador flexible, entrega final estricta, tecnologias seleccionables, deadline por reto y acceso correcto del jurado. Las migraciones, los tipos remotos y la aplicacion desplegada estan reconciliados. El correo transaccional opera con outbox seguro, pero la entrega mediante Resend seguira pendiente hasta verificar el dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO`.
 
 ## Usuarios
 

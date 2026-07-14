@@ -2,7 +2,7 @@
 
 ## Estado de ejecucion al 14 de julio de 2026
 
-Este alcance ya se implemento en el arbol local. El texto original se conserva debajo como contrato de aceptacion y como guia para la verificacion final.
+Este alcance ya se implemento y desplego. El texto original se conserva debajo como contrato de aceptacion y registro de la iteracion.
 
 - [x] Indicadores obligatorios accesibles en registro publico y manual.
 - [x] Borrador incompleto y envio final estricto con demo y repositorio.
@@ -13,10 +13,12 @@ Este alcance ya se implemento en el arbol local. El texto original se conserva d
 - [x] Resend con HTML/texto, idempotencia, clasificacion de reintentos y accion administrativa.
 - [x] Typecheck, 34 pruebas, build y comprobacion de secretos del bundle local.
 - [x] Aplicar las migraciones remotas y reconciliar tipos generados contra el esquema desplegado.
-- [ ] Instalar/autorizar Resend en Vercel, verificar dominio y configurar variables por entorno.
-- [ ] Desplegar y verificar los flujos reales en produccion.
+- [x] Instalar/autorizar Resend en Vercel y exponer `RESEND_API_KEY` solo al servidor.
+- [x] Configurar `APP_BASE_URL=https://oaibuildathon.vercel.app` en Production.
+- [ ] Verificar el dominio remitente y configurar `RESEND_FROM` y `RESEND_REPLY_TO` con direcciones reales.
+- [x] Desplegar y verificar registro, sesion de equipo, borrador incompleto y envio final en produccion.
 
-Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue; no describen el arbol local ya modificado.
+La prueba E2E real devolvio `201`, establecio la sesion HTTP-only, guardo un borrador parcial y termino con una entrega `submitted`. Los equipos temporales se eliminaron despues de la verificacion. Las afirmaciones de "estado actual" que siguen describen la produccion previa a ese despliegue y se conservan solo como contexto historico.
 
 El siguiente texto fue la solicitud autocontenida de la iteracion y describe funcionalidades que estaban **pendientes** al redactarse. Usalo ahora como contrato de verificacion, no como fuente del estado desplegado.
 

@@ -1,11 +1,11 @@
 # Domain and schema
 
-This reference describes the deployed schema verified on 2026-07-14 and the migration now prepared locally. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is actually deployed.
+This reference describes the deployed schema and application verified on 2026-07-14. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is actually deployed.
 
 ## Core entities
 
 - `events`: schedule, global stage switches, public-visibility flags, and configurable team limits. The database hard cap is three. Operational surfaces currently choose the most recent event; the admin UI does not create events.
-- `challenges`: active event challenges, requirements, ordering, and optional capacity. There is no per-challenge deadline today.
+- `challenges`: active event challenges, requirements, ordering, optional capacity, and `submission_deadline_at`.
 - `teams`: one global registration, primary contact, status, recovery code, and HMAC token hash.
 - `team_members`: one to three builders; email is unique within an event; exactly one member is the primary contact.
 - `team_challenges`: exactly one selected challenge per team.
@@ -22,17 +22,17 @@ This reference describes the deployed schema verified on 2026-07-14 and the migr
 - A participant email can appear only once per event.
 - A team chooses one active challenge from the same event.
 - Registration creates the team, members, challenge link, and draft submission atomically through `register_team`.
-- The current final-submit rule requires project name, short description, problem, solution, and at least one of demo or repository. Technology may be empty.
+- Drafts may be incomplete. Final submission requires project name, short description, problem, solution, at least one technology, demo URL, and repository URL.
 - Saving a draft after submission clears `submitted_at`; a successful resubmission records the new server time.
 - Only administration can publish a project to the landing showcase.
-- Judges can score only assigned teams while scoring is open, but the current API and SQL do not require the submission to be final.
+- Judges can score only assigned teams with `submitted` or `published` projects while scoring is open; both API and SQL enforce the rule.
 - Submitted evaluations contain every active criterion and cannot exceed criterion maxima.
 - Mentors see only assigned teams.
 
 ## Dates and visibility
 
-- `events.submissions_close_at` is the only submission timestamp. `PATCH /api/team` currently checks `submissions_open` but does not compare the server time with this value.
-- `challenges.submission_deadline_at` does not exist yet.
+- `PATCH /api/team` enforces the effective server deadline, defined as the earlier of `events.submissions_close_at` and `challenges.submission_deadline_at`.
+- Submission timestamps are stored in UTC and rendered in `America/Guayaquil (UTC-5)`.
 - `results_public` is stored, but no public results endpoint or page consumes it.
 - The showcase exposes only submissions that administration changed to `published` while showcase visibility is enabled.
 
@@ -55,6 +55,6 @@ Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_d
 
 The default 100-point construction-focused rubric is: functional product 30, use of OpenAI/Codex 25, technical execution 20, experience/demo 15, and impact/learning 10. Administrators may edit, deactivate, reweight, or add criteria.
 
-## Deployed schema, application pending deployment
+## Deployed schema and application
 
-The three latest migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs, UI and tests remain a local application change until the Vercel deployment is verified.
+The three latest migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft and final submission were verified with a real browser flow.

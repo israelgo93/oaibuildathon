@@ -1,16 +1,16 @@
 # Workflows
 
-This reference separates deployed behavior from the approved next iteration. Verify `docs/IMPLEMENTATION_STATUS.md` before changing a flow.
+This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.md` before changing a flow.
 
 ## Team: current behavior
 
 1. Open `/registro` from the landing.
 2. One person registers the whole team, with 1-3 members, and selects an active challenge.
 3. The server creates the team, members, challenge link, and draft submission atomically.
-4. The browser receives an HTTP-only session and displays the eight-character recovery code. No confirmation email is sent today.
+4. The browser receives an HTTP-only session and displays the eight-character recovery code. The transaction also creates an idempotent email outbox entry; delivery waits safely if Resend is not fully configured.
 5. `/equipo` recovers access with the contact email and code, then shows the challenge, members, and project form.
-6. The team saves a draft or submits. Today, a final submission needs demo **or** repository and technology can remain empty.
-7. The global close timestamp is not enforced by the team API and no per-challenge deadline exists.
+6. The team can save an incomplete draft. Final submission requires all project text, at least one technology, demo, and repository.
+7. The team API enforces the earlier of the global close and the selected challenge deadline.
 8. Administration verifies and publishes a submission; only then does it appear on `/`.
 
 ## Administration: current behavior
@@ -26,9 +26,9 @@ This reference separates deployed behavior from the approved next iteration. Ver
 ## Judge: current behavior
 
 1. Sign in at `/login` and enter `/jurado`.
-2. Receive assigned teams even when their submission is still a draft.
-3. Review challenge, project text, demo, and repository. Technology, presentation, video, submission status, deadline, and `submitted_at` are not currently rendered.
-4. If scoring is open, save a draft evaluation and submit all active criteria. Current server and SQL checks do not require a final project submission.
+2. Receive assigned teams, but draft content remains hidden until the project is `submitted` or `published`.
+3. Review challenge, project text, technologies, links, submission status, deadline, and `submitted_at`.
+4. If scoring is open and the project is final, save a draft evaluation and submit all active criteria. Server and SQL checks enforce assignment and final-project state.
 5. Submitted scores feed the private weighted ranking.
 
 ## Mentor
@@ -43,9 +43,9 @@ This reference separates deployed behavior from the approved next iteration. Ver
 - Team: `registered -> active`; administration can mark `withdrawn` or `disqualified`.
 - Evaluation: draft (`submitted=false`) -> final (`submitted=true`) while scoring is open.
 
-## Local workflow pending deployment
+## Workflow deployed on 2026-07-14
 
-`docs/NEXT_ITERATION_PROMPT.md` defines the implementation now present in the local tree:
+`docs/NEXT_ITERATION_PROMPT.md` defines the implementation now present in production:
 
 - visible and accessible required-field indicators in public and manual registration;
 - incomplete drafts but strict final submission, including demo, repository, and at least one technology;
@@ -54,4 +54,4 @@ This reference separates deployed behavior from the approved next iteration. Ver
 - jury access and scoring restricted to `submitted` or `published` projects, with submission timing visible;
 - registration confirmation through Resend using a server-side outbox and idempotent delivery.
 
-The database migrations and generated types now agree with production. Do not describe the complete workflow as current production until the application deployment and live verification agree; transactional delivery additionally requires the pending Resend configuration.
+The database migrations, generated types and Vercel application agree with production. Transactional delivery additionally requires a verified sender domain plus `RESEND_FROM` and `RESEND_REPLY_TO`; until then the outbox remains pending without affecting registration.

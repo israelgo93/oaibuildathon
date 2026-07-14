@@ -4,17 +4,18 @@ Ultima verificacion tecnica: 14 de julio de 2026.
 
 Este documento separa el comportamiento disponible del alcance aprobado para una siguiente iteracion. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
 
-## Implementacion con esquema desplegado y aplicacion pendiente
+## Implementacion desplegada y verificada
 
-El arbol local completa el alcance de `NEXT_ITERATION_PROMPT.md` y fue verificado con TypeScript estricto, 34 pruebas y build de produccion. La base remota ya contiene el esquema nuevo, pero la experiencia completa todavia no esta disponible porque:
+El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verificacion del 14 de julio de 2026 confirma:
 
-- `20260714131805_complete_submission_deadlines_and_email_outbox.sql`, `20260714131931_index_registration_email_outbox_team_event.sql` y `20260714132323_fix_assignment_role_trigger.sql` ya se aplicaron y verificaron en el proyecto remoto;
-- `src/types/database.generated.ts` se regenero desde ese esquema y se reconcilio con `src/types/database.ts`;
-- el codigo no se ha desplegado;
-- Vercel no lista `RESEND_API_KEY`; falta instalar/autorizar Resend, verificar el dominio remitente y configurar las variables por entorno;
-- Docker Desktop no estuvo disponible para `supabase db reset`, y el CLI local no tenia sesion para enlazar el proyecto. El proyecto, sus seis migraciones y los asesores posteriores al DDL si se verificaron mediante MCP.
+- las seis migraciones locales coinciden con el historial remoto y las tres migraciones de esta iteracion estan aplicadas;
+- `src/types/database.generated.ts` fue regenerado desde el esquema remoto y reconciliado con `src/types/database.ts`;
+- el codigo esta publicado en Vercel y el alias canonico apunta al deployment `dpl_FG2RTxhgiTmTeB1nrwXPy8H81mEK`;
+- `/`, `/registro`, `/equipo`, `/login`, la configuracion publica y la vitrina responden correctamente;
+- una prueba real de navegador completo registro, sesion automatica, guardado de borrador incompleto y envio final `submitted`; los datos temporales se eliminaron al terminar;
+- TypeScript estricto, 34 pruebas, `npm audit` sin vulnerabilidades y dos builds consecutivos terminaron correctamente.
 
-La implementacion local incluye asteriscos accesibles, borrador incompleto, envio final estricto, tecnologias tipadas, deadline efectivo, ocultamiento de borradores al jurado, `submitted_at` visible, outbox transaccional, idempotencia de Resend y reintento administrativo. No mezclar este bloque con la matriz desplegada que sigue.
+Resend esta autorizado mediante Vercel Marketplace y `RESEND_API_KEY` esta disponible en Production. `APP_BASE_URL` tambien esta configurada. El outbox funciona en modo degradado seguro, pero el envio real permanece pendiente hasta verificar un dominio remitente y definir `RESEND_FROM` y `RESEND_REPLY_TO`. Docker Desktop no estuvo disponible para `supabase db reset`; el esquema, las transacciones, el historial y los asesores se verificaron directamente contra el proyecto remoto.
 
 ## Entornos conectados
 
@@ -29,15 +30,15 @@ La implementacion local incluye asteriscos accesibles, borrador incompleto, envi
 | Area | Estado | Disponible ahora | Limitaciones conocidas |
 | --- | --- | --- | --- |
 | Landing | Implementado | Landing cinematografica, CTA `Registra tu equipo` y vitrina condicional | La landing no administra equipos ni entregas; esas funciones viven en rutas separadas |
-| Registro de equipos | Implementado con pendientes UX | Registro unico de 1 a 3 integrantes, contacto principal, reto, cupos, Turnstile opcional y codigo de recuperacion | Los campos obligatorios usan validacion nativa/Zod, pero no muestran asteriscos; no existe correo de confirmacion |
-| Portal del equipo | Implementado con reglas parciales | Recuperacion por correo y codigo, borrador, envio, enlaces y estado | Tecnologias es texto libre; demo y repositorio son alternativos; el cierre por fecha/hora no se aplica en servidor |
-| Retos | Implementado con pendiente de deadline | Titulo, descripcion, requisitos, estado y cupo opcional | No existe fecha y hora limite por reto |
+| Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie y codigo de recuperacion | El correo queda en outbox hasta configurar remitente y reply-to verificados |
+| Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
+| Retos | Implementado | Titulo, descripcion, requisitos, estado, cupo opcional y deadline propio | La UI administra retos del evento existente mas reciente |
 | Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, asignaciones, entregas y ranking privado | No crea eventos; staff se crea/lista pero no se elimina, desactiva ni restablece desde la UI |
-| Jurado | Implementado con brecha de acceso | Equipos asignados, enlaces, contexto y rubrica dinamica | Recibe borradores, no muestra `submitted_at`, tecnologias, presentacion ni video; la evaluacion no exige entrega final |
+| Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
 | Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Usa el evento mas reciente con vitrina habilitada |
 | Resultados publicos | No implementado | Existe el campo `results_public` y ranking privado en administracion | No hay endpoint ni vista publica de resultados |
-| Correo transaccional | No implementado | Ninguno | No existe proveedor, outbox, plantilla, webhook ni variables Resend |
+| Correo transaccional | Implementado en modo degradado | SDK Resend, HTML/texto, outbox transaccional, idempotencia, reintentos y accion administrativa | Falta verificar el dominio y configurar `RESEND_FROM` y `RESEND_REPLY_TO` en Production |
 
 ## Contrato actual de registro
 
@@ -51,23 +52,23 @@ El servidor exige:
 
 Organizacion/comunidad y rol/fortaleza son opcionales. El registro publico y el registro manual desde administracion usan `/api/registrations`.
 
-La RPC `register_team` crea de forma atomica el equipo, integrantes, reto y una entrega inicial en borrador. El codigo se devuelve y se muestra en pantalla; actualmente no se envia por correo.
+La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entrega inicial y notificacion de outbox. El codigo siempre se devuelve y se muestra en pantalla, incluso si el correo no esta configurado o el proveedor falla.
 
 ## Contrato actual de entrega
 
-- `projectName`, `shortDescription`, `problem` y `solution` son obligatorios por Zod incluso al guardar borrador.
-- `techStack` puede quedar vacio y se captura como texto separado por comas.
-- Para enviar se exige una URL de demo **o** una URL de repositorio, no ambas.
+- Guardar borrador permite informacion incompleta.
+- El envio final exige `projectName`, `shortDescription`, `problem`, `solution`, al menos una tecnologia, URL de demo y URL de repositorio.
+- Las tecnologias se seleccionan desde una lista tipada; `Otras` normaliza entradas personalizadas, elimina duplicados y aplica limites.
 - Presentacion y video son opcionales.
-- `submitted_at` representa el envio mas reciente o un cambio administrativo a estado `submitted`; no se muestra en la UI del jurado.
+- `submitted_at` representa el ultimo envio final exitoso y se muestra a administracion y jurado.
 - Guardar de nuevo como borrador elimina `submitted_at`; reenviar asigna una nueva hora del servidor.
-- Administracion puede publicar con nombre, descripcion corta y demo o repositorio.
+- Administracion solo puede llevar una entrega completa a `submitted` o `published`; publicar conserva `submitted_at`.
 
 ## Fechas y seleccion de evento
 
 - Registro y calificacion usan banderas y ventanas del evento.
-- `events.submissions_close_at` existe como cierre global, pero `PATCH /api/team` solo comprueba `submissions_open`; hoy no compara la hora del servidor con ese cierre.
-- `challenges` no tiene deadline propio.
+- `PATCH /api/team` hace cumplir el cierre efectivo en servidor: el menor entre `events.submissions_close_at` y `challenges.submission_deadline_at`.
+- Las fechas se guardan en UTC y se muestran en `America/Guayaquil (UTC-5)`.
 - La configuracion publica, jurado, mentor y vitrina operan sobre el evento mas reciente. El panel actualiza eventos existentes, pero no incluye creacion de eventos.
 
 ## API desplegada
@@ -105,8 +106,8 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 - Los datos personales no se publican en la vitrina.
 - La creacion de staff y las acciones de `/api/admin/manage` dejan auditoria. El registro manual que reutiliza `/api/registrations` todavia no crea una entrada de auditoria administrativa.
 
-## Iteracion aprobada, implementada localmente
+## Iteracion aprobada y desplegada
 
-El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado esta definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) y ya tiene implementacion local.
+El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion.
 
-No debe marcarse como aplicacion desplegada hasta publicar y verificar los flujos en produccion. El correo puede desplegarse en modo degradado seguro, pero no se enviara hasta configurar Resend.
+La unica configuracion externa pendiente de esta iteracion es habilitar la entrega real de correo con un dominio verificado, `RESEND_FROM` y `RESEND_REPLY_TO`. Mientras tanto, el registro permanece disponible y el outbox conserva los envios pendientes sin revertir ni duplicar equipos.

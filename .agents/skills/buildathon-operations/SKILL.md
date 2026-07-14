@@ -13,7 +13,7 @@ Work on the platform as a construction event system: the central outcome is a fu
 2. Read `docs/IMPLEMENTATION_STATUS.md` to separate deployed behavior from approved future work.
 3. Read `references/schema.md` for entities, invariants, and access boundaries.
 4. Read `references/workflows.md` for user journeys and state transitions.
-5. If the request covers required fields, technology selection, challenge deadlines, jury gating, or registration email, read `docs/NEXT_ITERATION_PROMPT.md` as the approved pending scope.
+5. If the request covers required fields, technology selection, challenge deadlines, jury gating, or registration email, read `docs/NEXT_ITERATION_PROMPT.md` as the implemented acceptance contract and verify current production before assuming its state.
 6. For landing integration, also use `$landing-maintenance`.
 
 ## Architecture decisions
@@ -25,7 +25,7 @@ Work on the platform as a construction event system: the central outcome is a fu
 - Teams use one global registration, an HTTP-only session, and a recovery code plus contact email. Participants do not need individual Auth accounts.
 - Admin, judge, and mentor users authenticate with Supabase Auth and have a `profiles` row.
 - Operational reads currently select the most recently created event. The admin UI edits that event and does not create a new one.
-- Transactional email is implemented with Resend and `registration_email_outbox`; the database migrations are applied, but delivery remains unavailable until the Marketplace integration, verified domain, variables and application deployment are completed.
+- Transactional email is deployed with Resend and `registration_email_outbox`. The Marketplace integration, API key and production base URL are configured; delivery remains unavailable until a sender domain is verified and `RESEND_FROM` plus `RESEND_REPLY_TO` are defined.
 
 ## Implementation workflow
 
