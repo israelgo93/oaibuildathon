@@ -41,6 +41,19 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 4. If scoring is open and the project is final, save a draft evaluation and submit all active criteria. Server and SQL checks enforce assignment and final-project state.
 5. Submitted scores feed the private weighted ranking.
 
+## Submission AI: current production workflow
+
+1. A team or administrator saves a complete project as a new `submitted` revision. The database trigger creates one queued `submission_ai_analyses` row for that `submitted_at`; publication with the same timestamp does not create another.
+2. The request starts work in the background with Vercel `waitUntil`; independently, an idempotent 30-second window absorbs duplicate final saves. A service-only claim atomically assigns a lease plus execution token; completion/failure must match it. The daily `/api/admin/analysis-worker` cron protected by `CRON_SECRET` recovers at most two queued or expired analyses in parallel.
+3. The server loads the exact submission, challenge context, and active rubric, then collects bounded demo/repository evidence without cloning, building, running JavaScript, or executing project code.
+4. Four OpenAI Agents SDK specialists run in parallel for challenge/problem-solution, deployment/product, code/architecture, and OpenAI integration. They have no tools and treat all project content as untrusted data.
+5. A synthesizer receives only validated specialist outputs and produces a structured report plus one bounded suggestion for each active criterion. The server calculates the weighted percentage; the model does not set an official grade.
+6. Administration and the assigned judge can open the accessible side panel. The disclaimer stays visible and the suggested weighting remains in a secondary collapsed section; it never pre-fills the judge form.
+7. A failed analysis can be retried by administration. If the project returns to draft, is resubmitted, or its challenge/rubric fingerprint no longer matches, the old report becomes stale and its score suggestion is hidden.
+8. An identical final save is idempotent only for 30 seconds. After that window, and on a draft-to-final resubmission, the same links may still contain changed external code/deploy; automatic processing stops after five revisions and exposes one bounded quota failure that administration can override manually.
+
+This workflow is deployed with migration `20260715051406_add_submission_ai_analysis.sql`. A protected production worker completed one real queued analysis with capacity 2 and persisted all structured outputs without runtime errors. The latest verification did not repeat the authenticated admin/judge panel visually because no session was available.
+
 ## Mentor
 
 1. Sign in at `/login` and enter `/mentor`.
@@ -54,6 +67,7 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 - Evaluation: draft (`submitted=false`) -> final (`submitted=true`) while scoring is open.
 - Staff access email: `not_sent|failed|sent -> sending -> sent|failed`; every successful re-notification increments the credential version and requires a password change.
 - Broadcast: `queued -> processing -> completed|partial|failed`; eligible queued, stale processing, partial or failed campaigns can resume, while permanent failures are not retried.
+- Submission AI: `queued -> running -> completed|failed`, with retry back to `queued` and an obsolete revision represented as `superseded` in storage/`stale` in the UI.
 
 ## Workflow deployed on 2026-07-14
 

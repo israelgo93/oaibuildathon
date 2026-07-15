@@ -1,8 +1,22 @@
 # Estado de implementacion
 
-Ultima verificacion tecnica: 14 de julio de 2026.
+Ultima verificacion tecnica: 15 de julio de 2026.
 
-Este documento separa el comportamiento disponible del alcance aprobado para una siguiente iteracion. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
+Este documento separa el comportamiento desplegado, sus limitaciones verificadas y el contrato de iteracion ya archivado. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
+
+## Analisis IA desplegado y verificado
+
+Produccion ejecuta el analisis automatico de una entrega cada vez que alcanza una nueva revision final `submitted`. La funcionalidad usa OpenAI Agents SDK con cuatro especialistas en paralelo —reto/propuesta, despliegue/producto, codigo/arquitectura e integracion de OpenAI— y un sintetizador que genera un informe estructurado, evidencia, limitaciones, preguntas y una ponderacion sugerida contra todos los criterios activos. El panel declara de forma permanente que el resultado es no vinculante: no completa la rubrica, no escribe `evaluations` ni `evaluation_scores` y no reemplaza el criterio del jurado.
+
+La evidencia se recoge de forma determinista antes de llamar al modelo. La demo y los repositorios publicos compatibles se consultan con destinos, redirecciones, tiempo, tamano y tipos de contenido acotados; no se clona, compila ni ejecuta codigo. HTML, README, rutas y codigo se consideran datos no confiables y los agentes no reciben herramientas de red. El informe solo se proyecta a administracion o a un jurado con asignacion para ese equipo.
+
+La migracion aplicada `20260715051406_add_submission_ai_analysis.sql` agrega `submission_ai_analyses` como outbox durable por revision, un trigger de encolado/invalidez, backfill para finales existentes, RLS y grants exclusivos de servidor. El claim atomico usa `FOR UPDATE SKIP LOCKED`, intentos, lease y un token de ejecucion unico que cerca completion/failure contra workers vencidos. `waitUntil` inicia el trabajo despues de responder al envio; un cooldown idempotente independiente absorbe dobles clics durante 30 segundos y un Vercel Cron diario protegido por `CRON_SECRET` recupera hasta dos pendientes en paralelo. Los tokens de modelo se acumulan tambien para ejecuciones parciales observables por el SDK. Publicar sin cambiar `submitted_at` reutiliza el informe; volver a borrador o reenviar vuelve obsoleto el anterior. Administracion puede reintentar un informe fallido o desactualizado mediante una actualizacion condicional que no reemplaza un worker vigente.
+
+El envio final identico mientras la entrega ya esta `submitted` preserva `submitted_at` durante una ventana de 30 segundos para absorber dobles clics. Despues puede crear una revision aun con las mismas URLs, al igual que un reenvio posterior a borrador, porque el contenido externo puede haber cambiado. El servidor verifica un hash canonico de contenido antes de persistir resultados, limita a cinco las revisiones automaticas por entrega y reutiliza un unico marcador de cuota para no crear filas ilimitadas; administracion conserva el override manual auditado.
+
+La validacion local termino con TypeScript estricto, 137 pruebas, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos correctos. Supabase confirma doce migraciones remotas. `OPENAI_API_KEY` y `CRON_SECRET` existen como variables Sensitive de Vercel Production; `CRON_SECRET` fue rotado y su autorizacion se comprobo sin exponer el valor. El deployment funcional `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` esta `READY`, sirve `https://oaibuildathon.vercel.app`, conserva exactamente 12 Functions y termino con build limpio.
+
+Una invocacion autorizada de `/api/admin/analysis-worker` proceso una entrega con capacidad de lote 2. La fila termino `completed` con modelo `gpt-5.5`, cuatro reportes especialistas, informe final, resumen de evidencia, ponderacion sugerida y confianza persistidos. La evidencia contiene 11 elementos `verified` y uno `partial`; no aparecieron errores de runtime. La comprobacion conservo 13 perfiles, 1 equipo y 1 entrega final, con cero campanas y cero solicitudes de recuperacion, sin efectos colaterales sobre acceso o comunicaciones. No hubo una sesion autenticada disponible para repetir visualmente el panel lateral como administrador o jurado; esa comprobacion visual desplegada permanece como limitacion honesta, aunque los contratos, guards y pruebas automatizadas siguen vigentes.
 
 ## Acceso de staff y difusion desplegados y verificados
 
@@ -18,7 +32,7 @@ Produccion incorpora:
 - activacion de una nueva clave existente solo despues de que Resend acepta el mensaje, conservando la clave anterior ante fallos del proveedor;
 - campanas de hasta 500 destinatarios, TXT/CSV con columna de correo, vista previa, CTA interna, lotes de 100, idempotencia estable, estado durable y recuperacion de envios interrumpidos o transitorios.
 
-La reconfirmacion de Production verifico `dpl_DiyDP28P8aWqXPwYcet5y66WLPar`, construido desde `main` en `fef92a7`, en estado `READY` sobre `https://oaibuildathon.vercel.app` y con exactamente 12 Functions. Los guards reales devolvieron `401` en `/api/auth/me` y `/api/admin/broadcasts`, `405` para `GET /api/auth/password-recovery` y `404` en acciones dinamicas desconocidas. Los dispatchers usan el parser estandar `URL`; tras invocarlos, Vercel no registro errores ni warnings propios de ese deployment.
+La verificacion historica de acceso y difusion se realizo sobre `dpl_DiyDP28P8aWqXPwYcet5y66WLPar`, construido desde `main` en `fef92a7`, entonces `READY` sobre `https://oaibuildathon.vercel.app` y con exactamente 12 Functions. Los guards reales devolvieron `401` en `/api/auth/me` y `/api/admin/broadcasts`, `405` para `GET /api/auth/password-recovery` y `404` en acciones dinamicas desconocidas. Los dispatchers usan el parser estandar `URL`; tras invocarlos, Vercel no registro errores ni warnings propios de ese deployment. El deployment vigente verificado es el documentado en la seccion de analisis IA.
 
 La verificacion de navegador cubrio el formulario de recuperacion, la ruta de cambio de contrasena, los guards de administracion y las vistas autenticadas de Personas y Difusion con una sesion y respuestas ficticias interceptadas. Se comprobaron la clave manual/opcional, la exclusion de administradores, las confirmaciones masivas, la carga TXT/CSV, deduplicacion, vista previa, CTA, confirmacion y estado deshabilitado previo al envio. No se envio ningun correo, no se activo ninguna accion y no se uso una cuenta real en esa comprobacion.
 
@@ -30,15 +44,15 @@ Produccion agrega `challenges.thematic_axes text[]` y `challenges.suggested_topi
 
 El panel administrativo edita las listas con un elemento por linea. La configuracion publica, el portal del equipo y mentoria las exponen mediante contratos tipados; registro y portal las muestran como ejes e ideas de construccion.
 
-La verificacion del 14 de julio de 2026 confirma que `20260714205820_add_challenge_themes.sql` ocupa la posicion 7 dentro del historial remoto de once migraciones, las restricciones de cardinalidad estan activas y los datos remotos conservan 6/8 elementos para agentes, 6/8 para builders y 8/10 para impacto local. La API publica devolvio esas mismas cantidades; `/registro` mostro las seis listas completas y una sesion temporal de `/equipo` mostro los 6 ejes y 8 ideas del reto de agentes. El equipo temporal fue eliminado y la consulta de limpieza devolvio cero registros.
+La verificacion confirma que `20260714205820_add_challenge_themes.sql` ocupa la posicion 7 dentro del historial remoto actual de doce migraciones, las restricciones de cardinalidad estan activas y los datos remotos conservan 6/8 elementos para agentes, 6/8 para builders y 8/10 para impacto local. La API publica devolvio esas mismas cantidades; `/registro` mostro las seis listas completas y una sesion temporal de `/equipo` mostro los 6 ejes y 8 ideas del reto de agentes. El equipo temporal fue eliminado y la consulta de limpieza devolvio cero registros.
 
 El deployment Production vigente contiene los campos `thematicAxes` y `suggestedTopics`, sus etiquetas y su payload de actualizacion. `/admin` rechaza correctamente el acceso sin sesion. La vista administrativa se comprobo con datos ficticios interceptados, sin guardar ni modificar retos reales; el contrato de mutacion y validacion queda cubierto por las pruebas automatizadas.
 
 ## Implementacion desplegada y verificada
 
-El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. La verificacion del 14 de julio de 2026 confirma:
+El alcance de `NEXT_ITERATION_PROMPT.md` esta desplegado en produccion. Su verificacion funcional original fue el 14 de julio; la reconciliacion del 15 de julio incorpora la migracion de analisis IA y confirma:
 
-- las once migraciones locales coinciden con el historial remoto;
+- las doce migraciones locales coinciden con el historial remoto;
 - `src/types/database.generated.ts` fue regenerado desde el esquema remoto y reconciliado con `src/types/database.ts`;
 - el codigo esta publicado en Vercel y el alias canonico apunta a un deployment Production en estado `READY`;
 - `/`, `/registro`, `/equipo`, `/login`, la configuracion publica y la vitrina responden correctamente;
@@ -65,6 +79,7 @@ Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FR
 | Retos | Implementado | Titulo, enfoque, requisitos, estado, cupo opcional, deadline propio, ejes tematicos y temas sugeridos editables | La UI administra retos del evento existente mas reciente |
 | Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones, entregas y ranking privado | No crea eventos; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
 | Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
+| Analisis IA para jurado | Desplegado y verificado en backend | Panel lateral para admin y jurado asignado, evidencia acotada, cuatro especialistas, sintesis y ponderacion sugerida no vinculante | Worker y persistencia verificados en produccion; el ultimo despliegue no se recorrio visualmente con una sesion autenticada de admin/jurado |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
 | Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Usa el evento mas reciente con vitrina habilitada |
 | Resultados publicos | No implementado | Existe el campo `results_public` y ranking privado en administracion | No hay endpoint ni vista publica de resultados |
@@ -93,6 +108,7 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 - `submitted_at` representa el ultimo envio final exitoso y se muestra a administracion y jurado.
 - Guardar de nuevo como borrador elimina `submitted_at`; reenviar asigna una nueva hora del servidor.
 - Administracion solo puede llevar una entrega completa a `submitted` o `published`; publicar conserva `submitted_at`.
+- Cada nuevo `submitted_at` encola una revision de analisis IA en produccion. Publicar no duplica el trabajo; volver a borrador o reenviar invalida la revision anterior.
 
 ## Fechas y seleccion de evento
 
@@ -122,6 +138,16 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 
 Los dos endpoints de Auth comparten un dispatcher dinamico y los dos endpoints administrativos nuevos comparten otro. Esta composicion mantiene las mismas URLs y controles de acceso dentro del limite verificado de 12 Functions de Vercel Hobby.
 
+## API desplegada de analisis
+
+| Endpoint | Acceso | Funcion |
+| --- | --- | --- |
+| `/api/admin/submission-analyses` | Admin | Detalle del informe y reintento auditado de estados fallidos/desactualizados |
+| `/api/admin/analysis-worker` | Vercel Cron con `CRON_SECRET` | Claim y procesamiento recuperable de trabajo pendiente |
+| `/api/judge/submission-analysis` | Jurado asignado o admin | Detalle tipado del informe; nunca expone prompts, trazas ni errores internos |
+
+El dispatcher de jurado agrupa `/api/judge/dashboard` y `/api/judge/submission-analysis`; el dispatcher administrativo incorpora las dos acciones anteriores. El deployment verificado mantiene 12 entrypoints. `vercel.json` asigna hasta 300 segundos a las Functions que inician/procesan analisis y programa el worker a las `03:00 UTC`; el worker autorizado proceso una entrega con capacidad 2.
+
 ## Migraciones aplicadas
 
 1. `20260713232939_buildathon_initial_schema.sql`: entidades, funciones, RLS, datos iniciales y rubrica.
@@ -135,6 +161,7 @@ Los dos endpoints de Auth comparten un dispatcher dinamico y los dos endpoints a
 9. `20260714224056_index_broadcast_campaign_foreign_keys.sql`: agrega indices para las claves foraneas de campanas.
 10. `20260714230812_harden_broadcast_retry_and_idempotency.sql`: persiste clasificacion e idempotencia por lote y agrega reanudacion atomica para campanas recuperables.
 11. `20260714230821_harden_staff_access_and_password_recovery.sql`: preserva el cambio obligatorio durante la activacion y hace atomica la cuota de recuperacion por correo/IP.
+12. `20260715051406_add_submission_ai_analysis.sql`: outbox de analisis por revision final, hash/cooldown/cuota de costo, trigger y backfill, constraints e indices, RLS/grants service-only y claim atomico con lease/token cercado.
 
 No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1 migration new nombre_descriptivo` y se reconcilia con el historial remoto.
 
@@ -149,8 +176,12 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 - Las claves temporales no se persisten ni aparecen en respuestas o auditoria; cada re-notificacion genera una nueva.
 - Recuperacion y difusion usan contenido fijo o texto escapado, remitente de servidor y CTA internas; el navegador no puede elegir HTML, remitente o URL.
 
+El analisis desplegado conserva `OPENAI_API_KEY`, el `GITHUB_TOKEN` opcional y `CRON_SECRET` exclusivamente en servidor; OpenAI y Cron estan configurados como Sensitive en Production y el secreto del cron fue rotado. El modelo configurable uso `gpt-5.5` en la ejecucion verificada; el contenido externo se delimita y no puede dar instrucciones a los agentes; el codigo del equipo nunca se ejecuta; y la autorizacion del detalle vuelve a comprobar rol/asignacion en servidor.
+
 ## Iteracion aprobada y desplegada
 
 El alcance de campos obligatorios, selector de tecnologias, email con Resend, deadline por reto y visibilidad para jurado definido en [`NEXT_ITERATION_PROMPT.md`](./NEXT_ITERATION_PROMPT.md) esta implementado y verificado en produccion.
 
 No queda configuracion externa pendiente en la iteracion archivada ni en la extension de acceso y difusion. `RESEND_FROM` esta fijado en Production como `OpenAI Build Week Manta <noreply@datatensei.ai>`. El enlace de recuperacion vuelve al Site URL y el cliente enruta el evento `PASSWORD_RECOVERY`, por lo que no depende de incluir tokens en URLs propias. Las operaciones reales de notificacion y difusion quedan deliberadamente bajo confirmacion manual de administracion.
+
+El analisis IA es una extension posterior y no reabre `NEXT_ITERATION_PROMPT.md`. La migracion, secretos server-only, deployment, worker y persistencia estructurada estan verificados en Production. Queda como comprobacion operativa adicional recorrer el panel desplegado con una sesion autenticada de administrador y jurado asignado/no asignado.

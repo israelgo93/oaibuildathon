@@ -16,6 +16,11 @@ export interface EmailEnvironment {
 
 export type RegistrationEmailEnvironment = EmailEnvironment
 
+export interface SubmissionAnalysisEnvironment {
+  model: string
+  githubToken: string | null
+}
+
 function requiredEnvironmentValue(name: string): string {
   const value = process.env[name]?.trim()
 
@@ -66,4 +71,19 @@ export function getEmailEnvironment(): EmailEnvironment | null {
 
 export function getRegistrationEmailEnvironment(): RegistrationEmailEnvironment | null {
   return getEmailEnvironment()
+}
+
+export function getSubmissionAnalysisEnvironment(): SubmissionAnalysisEnvironment | null {
+  const apiKey = process.env.OPENAI_API_KEY?.trim()
+  if (!apiKey) return null
+
+  const model = process.env.OPENAI_ANALYSIS_MODEL?.trim() || 'gpt-5.5'
+  if (!/^[a-zA-Z0-9._:-]+$/.test(model)) {
+    throw new Error('OPENAI_ANALYSIS_MODEL no contiene un identificador valido')
+  }
+
+  return {
+    model,
+    githubToken: process.env.GITHUB_TOKEN?.trim() || null,
+  }
 }

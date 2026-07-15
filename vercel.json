@@ -4,6 +4,13 @@
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/admin/*.ts": { "maxDuration": 300 },
+    "api/team.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/admin/analysis-worker", "schedule": "0 3 * * *" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

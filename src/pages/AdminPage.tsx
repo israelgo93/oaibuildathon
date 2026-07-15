@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import { authenticatedApiRequest, errorMessage } from '@/lib/api'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { ProjectAiAnalysisPanel } from '@/components/system/ProjectAiAnalysisPanel'
 import { BroadcastSection } from '@/pages/BroadcastSection'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
 import { ecuadorDateTimeInputValue, ecuadorDateTimeToIso, effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
-import type { AdminAction, AdminDashboardData, CreateStaffInput, CreateStaffResult, RegistrationInput, RegistrationResult, StaffAccessAction, StaffAccessResult } from '@/types/api'
+import type { AdminAction, AdminDashboardData, CreateStaffInput, CreateStaffResult, RegistrationInput, RegistrationResult, StaffAccessAction, StaffAccessResult, SubmissionAiAnalysisStatus, SubmissionAiAnalysisSummary } from '@/types/api'
 import type { Tables } from '@/types/database'
 
 type AdminTab = 'summary' | 'event' | 'challenges' | 'teams' | 'staff' | 'broadcast' | 'assignments' | 'projects' | 'results'
@@ -14,6 +15,27 @@ type AdminTab = 'summary' | 'event' | 'challenges' | 'teams' | 'staff' | 'broadc
 interface AdminSectionProps {
   dashboard: AdminDashboardData
   mutate: (action: AdminAction) => Promise<void>
+}
+
+interface ProjectsSectionProps extends AdminSectionProps {
+  onAnalysisChange: (analysis: SubmissionAiAnalysisSummary) => void
+}
+
+function sameSubmissionAnalysisSummary(
+  left: SubmissionAiAnalysisSummary,
+  right: SubmissionAiAnalysisSummary,
+): boolean {
+  return left.analysisId === right.analysisId
+    && left.submissionId === right.submissionId
+    && left.status === right.status
+    && left.requestedAt === right.requestedAt
+    && left.completedAt === right.completedAt
+    && left.sourceSubmittedAt === right.sourceSubmittedAt
+    && left.model === right.model
+    && left.suggestedPercentage === right.suggestedPercentage
+    && left.confidence === right.confidence
+    && left.errorCode === right.errorCode
+    && left.canRetry === right.canRetry
 }
 
 const tabs: { id: AdminTab; label: string }[] = [
@@ -465,9 +487,80 @@ function AssignmentsSection({ dashboard, mutate }: AdminSectionProps) {
   return <div className="assignment-grid"><form className="system-card system-form admin-form" onSubmit={(event) => void assignJudge(event)}><h2>Asignar jurado</h2><label>Jurado<select name="judgeId" required>{judges.map((judge) => <option key={judge.id} value={judge.id}>{judge.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.judgeAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.judge_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_judge_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form><form className="system-card system-form admin-form" onSubmit={(event) => void assignMentor(event)}><h2>Asignar mentor</h2><label>Mentor<select name="mentorId" required>{mentors.map((mentor) => <option key={mentor.id} value={mentor.id}>{mentor.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label>Notas<textarea name="notes" rows={3} /></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.mentorAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.mentor_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_mentor_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form></div>
 }
 
-function ProjectsSection({ dashboard, mutate }: AdminSectionProps) {
+function submissionAnalysisStatusLabel(status: SubmissionAiAnalysisStatus): string {
+  switch (status) {
+    case 'queued': return 'En cola'
+    case 'running': return 'Analizando'
+    case 'completed': return 'Listo'
+    case 'failed': return 'No completado'
+    case 'stale': return 'Desactualizado'
+    case 'unavailable': return 'No disponible'
+    default: {
+      const exhaustiveCheck: never = status
+      return exhaustiveCheck
+    }
+  }
+}
+
+function ProjectsSection({ dashboard, mutate, onAnalysisChange }: ProjectsSectionProps) {
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
+  const selectedSubmission = dashboard.submissions.find((submission) => submission.id === selectedSubmissionId) ?? null
+  const selectedSummary = selectedSubmission
+    ? dashboard.submissionAnalyses.find((analysis) => analysis.submissionId === selectedSubmission.id) ?? null
+    : null
   const teamName = (teamId: string) => dashboard.teams.find((team) => team.id === teamId)?.name ?? 'Equipo'
-  return <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Entregas</p><h2>Proyectos y vitrina</h2></div><span>Publica solo entregas verificadas</span></div><div className="responsive-table"><table><thead><tr><th>Equipo / proyecto</th><th>Descripcion</th><th>Enlaces</th><th>Ultimo envio</th><th>Estado</th><th>Accion</th></tr></thead><tbody>{dashboard.submissions.map((submission) => <tr key={submission.id}><td><strong>{teamName(submission.team_id)}</strong><small>{submission.project_name || 'Sin nombre'}</small></td><td>{submission.short_description || 'Borrador incompleto'}</td><td><div className="table-links">{submission.demo_url ? <a href={submission.demo_url} target="_blank" rel="noreferrer">Demo</a> : null}{submission.repository_url ? <a href={submission.repository_url} target="_blank" rel="noreferrer">Codigo</a> : null}</div></td><td>{formatEcuadorDateTime(submission.submitted_at)}</td><td><span className={`status-pill status-${submission.status}`}>{submission.status}</span></td><td><select value={submission.status} onChange={(event) => void mutate({ action: 'set_submission_status', submissionId: submission.id, status: event.target.value as Tables<'project_submissions'>['status'] })}><option value="draft">Borrador</option><option value="submitted">Enviado</option><option value="published">Publicado</option></select></td></tr>)}</tbody></table></div></section>
+  const openAnalysis = (submissionId: string) => {
+    setSelectedSubmissionId(submissionId)
+    setAnalysisOpen(true)
+  }
+
+  return (
+    <>
+      <section className="system-card table-card">
+        <div className="admin-section-heading"><div><p className="system-eyebrow">Entregas</p><h2>Proyectos y vitrina</h2></div><span>Publica solo entregas verificadas</span></div>
+        <div className="responsive-table">
+          <table>
+            <thead><tr><th>Equipo / proyecto</th><th>Descripcion</th><th>Enlaces</th><th>Ultimo envio</th><th>Estado</th><th>Analisis IA</th><th>Accion</th></tr></thead>
+            <tbody>
+              {dashboard.submissions.map((submission) => {
+                const analysis = dashboard.submissionAnalyses.find((item) => item.submissionId === submission.id) ?? null
+                const isFinalSubmission = submission.status === 'submitted' || submission.status === 'published'
+                return (
+                  <tr key={submission.id}>
+                    <td><strong>{teamName(submission.team_id)}</strong><small>{submission.project_name || 'Sin nombre'}</small></td>
+                    <td>{submission.short_description || 'Borrador incompleto'}</td>
+                    <td><div className="table-links">{submission.demo_url ? <a href={submission.demo_url} target="_blank" rel="noreferrer">Demo</a> : null}{submission.repository_url ? <a href={submission.repository_url} target="_blank" rel="noreferrer">Codigo</a> : null}</div></td>
+                    <td>{formatEcuadorDateTime(submission.submitted_at)}</td>
+                    <td><span className={`status-pill status-${submission.status}`}>{submission.status}</span></td>
+                    <td>
+                      {isFinalSubmission ? (
+                        <div className="ai-analysis-table-action">
+                          <span className={`ai-analysis-status ai-analysis-status-${analysis?.status ?? 'unavailable'}`}>{submissionAnalysisStatusLabel(analysis?.status ?? 'unavailable')}</span>
+                          <button className="system-link-button" type="button" aria-haspopup="dialog" aria-expanded={analysisOpen && selectedSubmissionId === submission.id} onClick={() => openAnalysis(submission.id)}>{(analysis?.status ?? 'unavailable') === 'unavailable' ? 'Iniciar analisis' : 'Ver analisis'}</button>
+                        </div>
+                      ) : <small>Disponible al enviar</small>}
+                    </td>
+                    <td><select value={submission.status} onChange={(event) => void mutate({ action: 'set_submission_status', submissionId: submission.id, status: event.target.value as Tables<'project_submissions'>['status'] })}><option value="draft">Borrador</option><option value="submitted">Enviado</option><option value="published">Publicado</option></select></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <ProjectAiAnalysisPanel
+        endpoint="/api/admin/submission-analyses"
+        isOpen={analysisOpen}
+        onAnalysisChange={onAnalysisChange}
+        onRequestClose={() => setAnalysisOpen(false)}
+        projectName={selectedSubmission?.project_name || 'Proyecto'}
+        submissionId={selectedSubmission?.id ?? null}
+        summary={selectedSummary}
+        teamName={selectedSubmission ? teamName(selectedSubmission.team_id) : 'Equipo'}
+      />
+    </>
+  )
 }
 
 function ResultsSection({ dashboard }: { dashboard: AdminDashboardData }) {
@@ -506,14 +599,29 @@ export function AdminPage() {
 
   useEffect(() => { void loadDashboard() }, [loadDashboard])
 
-  const mutate = async (action: AdminAction) => {
+  const updateSubmissionAnalysis = useCallback((analysis: SubmissionAiAnalysisSummary) => {
+    setDashboard((current) => {
+      if (!current) return current
+      const existingIndex = current.submissionAnalyses.findIndex((item) => item.submissionId === analysis.submissionId)
+      const submissionAnalyses = [...current.submissionAnalyses]
+      if (existingIndex === -1) submissionAnalyses.push(analysis)
+      else {
+        const existing = submissionAnalyses[existingIndex]
+        if (existing && sameSubmissionAnalysisSummary(existing, analysis)) return current
+        submissionAnalyses[existingIndex] = analysis
+      }
+      return { ...current, submissionAnalyses }
+    })
+  }, [])
+
+  const mutate = useCallback(async (action: AdminAction) => {
     setMessage(''); setSuccess('')
     try {
       await authenticatedApiRequest('/api/admin/manage', { method: 'POST', body: JSON.stringify(action) })
       setSuccess('Cambio guardado correctamente.')
       await loadDashboard()
     } catch (error) { setMessage(errorMessage(error)) }
-  }
+  }, [loadDashboard])
 
   const content = useMemo<ReactNode>(() => {
     if (!dashboard) return null
@@ -525,11 +633,11 @@ export function AdminPage() {
       case 'staff': return <StaffSection dashboard={dashboard} reload={loadDashboard} />
       case 'broadcast': return dashboard.events[0] ? <BroadcastSection eventId={dashboard.events[0].id} /> : <StatusMessage kind="error">No existe un evento configurado.</StatusMessage>
       case 'assignments': return <AssignmentsSection dashboard={dashboard} mutate={mutate} />
-      case 'projects': return <ProjectsSection dashboard={dashboard} mutate={mutate} />
+      case 'projects': return <ProjectsSection dashboard={dashboard} mutate={mutate} onAnalysisChange={updateSubmissionAnalysis} />
       case 'results': return <ResultsSection dashboard={dashboard} />
       default: { const exhaustiveCheck: never = tab; return exhaustiveCheck }
     }
-  }, [dashboard, tab, loadDashboard])
+  }, [dashboard, tab, loadDashboard, mutate, updateSubmissionAnalysis])
 
   if (loading) return <SystemLayout eyebrow="Organizacion" title="Centro de control"><StatusMessage>Cargando el sistema...</StatusMessage></SystemLayout>
   if (!dashboard) return <SystemLayout eyebrow="Organizacion" title="Centro de control"><StatusMessage kind="error">{message || 'No fue posible cargar el panel.'}</StatusMessage><Link className="system-button" to="/login">Iniciar sesion</Link></SystemLayout>

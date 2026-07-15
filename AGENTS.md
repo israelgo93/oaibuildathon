@@ -29,12 +29,15 @@ La Buildathon esta orientada a construir y demostrar un producto funcional. Las 
 - `supabase/migrations/`: esquema, funciones, RLS y datos iniciales.
 - `src/types/database.ts`: tipos de base de datos usados por cliente y servidor.
 - `server/registration-email.ts`: plantilla, idempotencia, clasificacion de reintentos y procesamiento del outbox de registro.
+- `server/submission-analysis-*.ts`: evidencia externa acotada, agentes especialistas, sintesis, persistencia y proyeccion publica del analisis IA de entregas.
+- `submission_ai_analyses`: outbox durable por revision final; usa estados, intentos, cooldown, cuota automatica y leases con token para recuperar trabajo sin aceptar escrituras tardias.
 
 ## Seguridad obligatoria
 
 - El navegador solo puede usar `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - `SUPABASE_SECRET_KEY` y `TEAM_SESSION_SECRET` son exclusivos de Vercel Functions. Nunca usar el prefijo `VITE_` en secretos.
 - Cualquier secreto de correo, incluido `RESEND_API_KEY`, tambien es exclusivo de servidor y nunca usa el prefijo `VITE_`.
+- `OPENAI_API_KEY`, `GITHUB_TOKEN` y `CRON_SECRET` son secretos exclusivos de servidor. `OPENAI_ANALYSIS_MODEL` es configuracion de servidor y tampoco usa el prefijo `VITE_`.
 - Nunca versionar `.env`, `.env.local`, tokens, claves, contrasenas ni respuestas que las contengan.
 - Mantener RLS habilitado y revisar grants de cada tabla o funcion nueva.
 - Validar entradas publicas con Zod. No devolver errores internos o detalles SQL al publico.
@@ -42,6 +45,8 @@ La Buildathon esta orientada a construir y demostrar un producto funcional. Las 
 - El codigo de recuperacion nunca se incluye en query strings, logs, analitica ni URLs de correo. Un fallo de correo no puede revertir ni duplicar un registro valido.
 - No crear endpoints publicos capaces de enviar destinatarios, asuntos o HTML arbitrarios.
 - Toda mutacion administrativa debe verificar el rol en servidor y dejar auditoria cuando corresponda.
+- El analisis IA trata HTML, README, nombres de archivos y codigo externo como datos no confiables. La recoleccion valida destinos y limites antes del modelo, nunca ejecuta codigo del equipo y no entrega herramientas de red a los agentes.
+- Un informe IA solo puede exponerse a administracion o al jurado asignado. Nunca escribe `evaluations` ni `evaluation_scores`, y su sugerencia no es una calificacion ni un veredicto.
 
 ## TypeScript y JavaScript
 
@@ -85,18 +90,20 @@ const team = teamRaw as Tables<'teams'>
 - Cada equipo elige exactamente un reto activo.
 - Cada equipo tiene una entrega; solo administracion puede publicarla en la landing.
 - Los jurados califican unicamente equipos asignados y durante la etapa abierta. El objetivo aprobado es que solo puedan calificar entregas finales `submitted` o `published`; consulta el estado actual antes de modificar este flujo.
+- Cada nueva revision final en estado `submitted` encola un analisis IA no vinculante. Un envio identico solo es idempotente durante 30 segundos; despues puede reflejar cambios externos aunque conserve las URLs. Publicar sin cambiar `submitted_at` no crea otro; volver a borrador o reenviar invalida el informe anterior. Cinco revisiones son automaticas y administracion puede autorizar manualmente las siguientes.
 - La rubrica es dinamica y una evaluacion final incluye todos los criterios activos.
 - Mentores y jurados se crean como usuarios Auth con perfiles de rol explicito.
 
 ## Estado actual que no debe sobreestimarse
 
 - Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
-- Supabase produccion aplica once migraciones locales, incluidas `20260714230812_harden_broadcast_retry_and_idempotency.sql` y `20260714230821_harden_staff_access_and_password_recovery.sql`; el historial y los tipos remotos estan reconciliados.
+- Supabase produccion aplica doce migraciones locales, incluida `20260715051406_add_submission_ai_analysis.sql`; el historial remoto esta reconciliado.
 - La aplicacion de produccion expone ejes tematicos y temas sugeridos en la configuracion publica, registro, portal del equipo y mentoria. Registro y portal fueron verificados con navegador; el formulario administrativo desplegado y su proteccion se verificaron, pero esta comprobacion no repitio un guardado autenticado por falta de una sesion disponible.
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.
 - Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
-- Produccion incorpora correo de acceso, recuperacion de contrasena y difusion desde el commit funcional `f2a3ecd`. La reconfirmacion sobre `main` en `fef92a7` verifico el deployment `dpl_DiyDP28P8aWqXPwYcet5y66WLPar` en estado `READY`, con 12 Functions y sin errores o warnings propios. El esquema se aplico sin rotar claves ni enviar mensajes: se conservan 1 admin, 7 jurados y 5 mentores activos, con cero cambios forzados, cero estados de acceso tocados, cero campanas y cero solicitudes de recuperacion. Nunca ejecutar acciones masivas como parte de una prueba.
+- Produccion incorpora correo de acceso, recuperacion de contrasena y difusion. El deployment vigente verificado `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` esta `READY` en `https://oaibuildathon.vercel.app`, con 12 Functions y build limpio. Conserva 13 perfiles, 1 equipo y 1 entrega final, con cero campanas y cero solicitudes de recuperacion; nunca ejecutar acciones masivas como parte de una prueba.
 - `results_public` no tiene endpoint ni vista publica consumidora.
+- Produccion incorpora analisis IA con OpenAI Agents SDK, panel lateral para administracion/jurado y recuperacion durable. `OPENAI_API_KEY` y `CRON_SECRET` estan configuradas como Sensitive; el worker autorizado proceso una entrega que termino `completed` con `gpt-5.5`, cuatro especialistas y resultados estructurados persistidos. No se repitio visualmente el panel desplegado por falta de una sesion autenticada disponible.
 
 Estas brechas estan documentadas en `docs/IMPLEMENTATION_STATUS.md`. No marques una capacidad como implementada hasta completar migraciones, tipos, servidor, UI, pruebas y verificacion desplegada.
 

@@ -5,6 +5,11 @@ import { getTeamByToken, getTeamPortalData } from '../server/team-data.js'
 import { HttpError, parseJsonBody, readCookie, requireMethod, setPrivateResponse, withErrorHandling } from '../server/http.js'
 import { getServerSupabase } from '../server/supabase.js'
 import { submissionSchema, teamLoginSchema } from '../server/validation.js'
+import { scheduleSubmissionAnalysisForSubmission } from '../server/submission-analysis-service.js'
+import {
+  isSubmissionResubmitCooldownActive,
+  submissionContentMatchesInput,
+} from '../server/submission-analysis-fingerprint.js'
 
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['GET', 'POST', 'PATCH', 'DELETE'])
@@ -55,6 +60,28 @@ export default withErrorHandling(async (request, response) => {
     }
     if (portal.submission.status === 'published') throw new HttpError(409, 'El proyecto publicado debe ser reabierto por administracion')
 
+    const isIdempotentFinalSubmission = submission.submit
+      && portal.submission.status === 'submitted'
+      && portal.submission.submitted_at !== null
+      && isSubmissionResubmitCooldownActive(portal.submission.submitted_at)
+      && submissionContentMatchesInput(portal.submission, {
+        projectName: submission.projectName,
+        shortDescription: submission.shortDescription,
+        problem: submission.problem,
+        solution: submission.solution,
+        techStack: submission.techStack ?? [],
+        repositoryUrl: submission.repositoryUrl ?? '',
+        demoUrl: submission.demoUrl ?? '',
+        presentationUrl: submission.presentationUrl ?? '',
+        videoUrl: submission.videoUrl ?? '',
+      })
+
+    if (isIdempotentFinalSubmission) {
+      setPrivateResponse(response)
+      response.status(200).json(portal)
+      return
+    }
+
     const values: TablesUpdate<'project_submissions'> = {
       project_name: submission.projectName,
       short_description: submission.shortDescription,
@@ -69,8 +96,15 @@ export default withErrorHandling(async (request, response) => {
       submitted_at: submission.submit ? new Date().toISOString() : null,
       published_at: null,
     }
-    const { error } = await supabase.from('project_submissions').update(values).eq('team_id', team.id)
-    if (error) throw new HttpError(500, 'No fue posible guardar el proyecto')
+    const { data: savedRaw, error } = await supabase
+      .from('project_submissions')
+      .update(values)
+      .eq('team_id', team.id)
+      .select('*')
+      .single()
+    if (error || !savedRaw) throw new HttpError(500, 'No fue posible guardar el proyecto')
+    const savedSubmission = savedRaw as Tables<'project_submissions'>
+    await scheduleSubmissionAnalysisForSubmission(savedSubmission)
   }
 
   setPrivateResponse(response)

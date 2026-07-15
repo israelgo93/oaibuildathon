@@ -12,6 +12,8 @@ Produccion incluye ejes tematicos y ejemplos concretos para los tres retos. La m
 
 Produccion extiende la operacion con alta y re-notificacion de staff, cambio obligatorio, recuperacion de contrasena y difusion a participantes. El esquema, la API y las vistas estan desplegados y verificados sin alterar cuentas existentes ni ejecutar notificaciones reales durante la comprobacion.
 
+Produccion incorpora un analisis IA de apoyo para entregas finales: cuatro especialistas revisan reto/propuesta, demo, codigo/arquitectura e integracion de OpenAI, y un sintetizador presenta un informe y una ponderacion sugerida conforme a la rubrica. Es una ayuda no vinculante, nunca un veredicto ni una calificacion automatica. La migracion, configuracion server-only, worker y persistencia estructurada estan verificados; el ultimo despliegue no se recorrio visualmente con una sesion autenticada de administrador o jurado.
+
 ## Diseno de retos
 
 Cada reto conserva un enfoque breve y requisitos verificables, pero orienta la ideacion mediante dos listas administrables:
@@ -27,7 +29,7 @@ Para impacto local, los ejes priorizan economia costera, agro y agua, turismo, e
 
 - Builders: desarrolladores, estudiantes, disenadores, fundadores, emprendedores y creadores de Ecuador.
 - Organizacion: configura el evento y opera registro, retos, staff, equipos, entregas y resultados.
-- Jurado: revisa proyectos asignados y completa una rubrica dinamica.
+- Jurado: revisa proyectos asignados, contrasta un analisis IA no vinculante cuando este disponible y completa una rubrica dinamica con criterio propio.
 - Mentores: acompanan equipos asignados durante el sprint de construccion.
 - Visitantes: conocen el evento y exploran proyectos publicados.
 
@@ -48,6 +50,9 @@ No es un proceso extenso de ideacion. La experiencia prioriza construir, probar,
 - Borrador sin friccion, entrega rigurosa: un equipo puede avanzar por partes, pero el envio final debe cumplir todos los campos y enlaces definidos.
 - Tiempo explicito: cada reto debe comunicar y hacer cumplir su fecha y hora limite desde el servidor.
 - Jurado con contexto: estado, ultima hora de envio, deadline, tecnologias y enlaces deben poder leerse a simple vista antes de calificar.
+- IA como copiloto, no como arbitro: el informe debe separar evidencia, inferencias y limitaciones; su ponderacion permanece secundaria, nunca precarga la rubrica y no modifica evaluaciones oficiales.
+- Evidencia segura: demo y repositorio se inspeccionan con destinos y limites controlados, sin ejecutar codigo; contenido externo se trata como dato no confiable y los agentes no navegan por su cuenta.
+- Acceso minimo: solo administracion y el jurado asignado pueden consultar el analisis de una entrega.
 - Recuperacion confiable: al registrar, el contacto principal conserva el codigo y recibe confirmacion sin que un fallo del proveedor de correo invalide el equipo.
 - Acceso interno recuperable: cada cuenta recibe una credencial temporal, debe cambiarla y puede solicitar un enlace neutral sin revelar si el correo existe.
 - Difusion deliberada: cada campana exige vista previa y confirmacion, usa destinatarios deduplicados y solo admite texto y enlaces internos predefinidos.
@@ -75,3 +80,5 @@ Evitar la estetica gamer de neon saturado, dashboards SaaS genericos, plantillas
 Objetivo WCAG 2.2 AA, navegacion por teclado, contraste suficiente, estructura semantica, foco visible y contenido comprensible en espanol. Todas las animaciones respetan `prefers-reduced-motion`; el contenido funciona sin movimiento avanzado ni WebGL.
 
 Los formularios deben marcar visualmente los campos obligatorios con `*`, explicar su significado y comunicar la obligatoriedad a tecnologias de asistencia sin depender solo del color. Los campos opcionales deben indicarse de forma explicita, y los errores deben identificar el campo y la accion necesaria.
+
+El informe IA se presenta como panel lateral con semantica de dialogo, foco administrado, cierre por teclado y disposicion adaptable a pantallas pequenas. El aviso de que es una ayuda no vinculante debe permanecer visible; la ponderacion sugerida se mantiene en un detalle secundario para no competir con la evaluacion humana.

@@ -1,6 +1,6 @@
 import type { ApiRequest } from './types.js'
 
-type DynamicRouteGroup = 'admin' | 'auth'
+type DynamicRouteGroup = 'admin' | 'auth' | 'judge'
 
 export function dynamicRouteAction(request: ApiRequest, group: DynamicRouteGroup): string {
   if (!request.url) return ''

@@ -117,6 +117,64 @@ export interface AuthenticatedProfile {
   temporaryPasswordExpiresAt: string | null
 }
 
+export type SubmissionAiAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed' | 'stale' | 'unavailable'
+
+export type SubmissionAiEvidenceSource = 'submission' | 'challenge' | 'demo' | 'repository'
+
+export type SubmissionAiEvidenceStatus = 'verified' | 'partial' | 'unavailable'
+
+export interface SubmissionAiAnalysisSummary {
+  analysisId: string | null
+  submissionId: string
+  status: SubmissionAiAnalysisStatus
+  requestedAt: string | null
+  completedAt: string | null
+  sourceSubmittedAt: string | null
+  model: string | null
+  suggestedPercentage: number | null
+  confidence: number | null
+  errorCode: string | null
+  canRetry: boolean
+}
+
+export interface SubmissionAiEvidenceSummary {
+  id: string
+  source: SubmissionAiEvidenceSource
+  title: string
+  summary: string
+  status: SubmissionAiEvidenceStatus
+}
+
+export interface SubmissionAiRubricSuggestion {
+  criterionId: string
+  criterionName: string
+  score: number
+  maxScore: number
+  weight: number
+  rationale: string
+  evidenceIds: string[]
+}
+
+export interface SubmissionAiAnalysisReport {
+  executiveSummary: string
+  challengeAlignment: string
+  problemAnalysis: string
+  solutionAnalysis: string
+  deploymentAnalysis: string
+  codeAnalysis: string
+  aiIntegrationAnalysis: string
+  risks: string[]
+  strengths: string[]
+  recommendations: string[]
+  rubricSuggestions: SubmissionAiRubricSuggestion[]
+  limitations: string[]
+}
+
+export interface SubmissionAiAnalysisDetail extends SubmissionAiAnalysisSummary {
+  report: SubmissionAiAnalysisReport | null
+  evidenceSummary: SubmissionAiEvidenceSummary[]
+}
+
 export interface AdminDashboardData {
   profile: AuthenticatedProfile
   events: Tables<'events'>[]
@@ -132,6 +190,7 @@ export interface AdminDashboardData {
   evaluations: Tables<'evaluations'>[]
   scores: Tables<'evaluation_scores'>[]
   registrationEmailOutbox: Tables<'registration_email_outbox'>[]
+  submissionAnalyses: SubmissionAiAnalysisSummary[]
 }
 
 export interface JudgeTeamData {
@@ -150,6 +209,7 @@ export interface JudgeDashboardData {
   event: Tables<'events'>
   criteria: Tables<'evaluation_criteria'>[]
   teams: JudgeTeamData[]
+  submissionAnalyses: SubmissionAiAnalysisSummary[]
 }
 
 export interface EvaluationScoreInput {

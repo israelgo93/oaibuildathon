@@ -7,6 +7,8 @@ import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorH
 import { getServerSupabase } from '../../server/supabase.js'
 import { adminActionSchema, submissionSchema } from '../../server/validation.js'
 import { safelyProcessRegistrationEmailForTeam } from '../../server/registration-email.js'
+import { scheduleSubmissionAnalysisForSubmission } from '../../server/submission-analysis-service.js'
+import { isSubmissionResubmitCooldownActive } from '../../server/submission-analysis-fingerprint.js'
 
 async function requireStaffRole(profileId: string, role: 'judge' | 'mentor'): Promise<void> {
   const { data: profileRaw, error } = await getServerSupabase()
@@ -85,13 +87,24 @@ async function submitSubmissionAsAdmin(submissionId: string): Promise<void> {
   if (error || !submissionRaw) throw new HttpError(404, 'La entrega no existe')
   const submission = submissionRaw as Tables<'project_submissions'>
   requireCompleteSubmission(submission)
+  if (
+    submission.status === 'submitted'
+    && isSubmissionResubmitCooldownActive(submission.submitted_at)
+  ) return
   const values: TablesUpdate<'project_submissions'> = {
     status: 'submitted',
     submitted_at: new Date().toISOString(),
     published_at: null,
   }
-  const { error: updateError } = await supabase.from('project_submissions').update(values).eq('id', submissionId)
-  if (updateError) throw new HttpError(500, 'No fue posible enviar la entrega')
+  const { data: savedRaw, error: updateError } = await supabase
+    .from('project_submissions')
+    .update(values)
+    .eq('id', submissionId)
+    .select('*')
+    .single()
+  if (updateError || !savedRaw) throw new HttpError(500, 'No fue posible enviar la entrega')
+  const savedSubmission = savedRaw as Tables<'project_submissions'>
+  await scheduleSubmissionAnalysisForSubmission(savedSubmission)
 }
 
 export default withErrorHandling(async (request, response) => {

@@ -764,6 +764,113 @@ export type Database = {
           },
         ]
       }
+      submission_ai_analyses: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          confidence: number | null
+          context_fingerprint: string | null
+          created_at: string
+          event_id: string
+          evidence_summary: Json | null
+          final_report: Json | null
+          id: string
+          input_tokens: number
+          last_error_code: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          max_attempts: number
+          model: string | null
+          next_attempt_at: string | null
+          output_tokens: number
+          prompt_version: string
+          requested_reason: string
+          source_content_hash: string
+          source_submitted_at: string
+          specialist_reports: Json | null
+          started_at: string | null
+          status: string
+          submission_id: string
+          suggested_percentage: number | null
+          team_id: string
+          total_tokens: number
+          trace_group_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          confidence?: number | null
+          context_fingerprint?: string | null
+          created_at?: string
+          event_id: string
+          evidence_summary?: Json | null
+          final_report?: Json | null
+          id?: string
+          input_tokens?: number
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          model?: string | null
+          next_attempt_at?: string | null
+          output_tokens?: number
+          prompt_version?: string
+          requested_reason: string
+          source_content_hash: string
+          source_submitted_at: string
+          specialist_reports?: Json | null
+          started_at?: string | null
+          status?: string
+          submission_id: string
+          suggested_percentage?: number | null
+          team_id: string
+          total_tokens?: number
+          trace_group_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          confidence?: number | null
+          context_fingerprint?: string | null
+          created_at?: string
+          event_id?: string
+          evidence_summary?: Json | null
+          final_report?: Json | null
+          id?: string
+          input_tokens?: number
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          model?: string | null
+          next_attempt_at?: string | null
+          output_tokens?: number
+          prompt_version?: string
+          requested_reason?: string
+          source_content_hash?: string
+          source_submitted_at?: string
+          specialist_reports?: Json | null
+          started_at?: string | null
+          status?: string
+          submission_id?: string
+          suggested_percentage?: number | null
+          team_id?: string
+          total_tokens?: number
+          trace_group_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_ai_analyses_submission_fk"
+            columns: ["submission_id", "team_id", "event_id"]
+            isOneToOne: false
+            referencedRelation: "project_submissions"
+            referencedColumns: ["id", "team_id", "event_id"]
+          },
+        ]
+      }
       team_challenges: {
         Row: {
           challenge_id: string
@@ -950,6 +1057,47 @@ export type Database = {
           p_window_minutes: number
         }
         Returns: string
+      }
+      claim_submission_ai_analysis: {
+        Args: { p_analysis_id?: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          confidence: number | null
+          context_fingerprint: string | null
+          created_at: string
+          event_id: string
+          evidence_summary: Json | null
+          final_report: Json | null
+          id: string
+          input_tokens: number
+          last_error_code: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          max_attempts: number
+          model: string | null
+          next_attempt_at: string | null
+          output_tokens: number
+          prompt_version: string
+          requested_reason: string
+          source_content_hash: string
+          source_submitted_at: string
+          specialist_reports: Json | null
+          started_at: string | null
+          status: string
+          submission_id: string
+          suggested_percentage: number | null
+          team_id: string
+          total_tokens: number
+          trace_group_id: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "submission_ai_analyses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_broadcast_campaign: {
         Args: {

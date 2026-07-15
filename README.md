@@ -10,9 +10,9 @@ La experiencia conserva la landing cinematografica existente. La integracion vis
 - Repositorio: `israelgo93/oaibuildathon`.
 - Supabase: proyecto `buildathon`, referencia publica `iexmlbslfnckrdtkwuir`.
 - Estado real, endpoints, migraciones y brechas: [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
-- Alcance autocontenido para la siguiente iteracion: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
+- Contrato archivado de la iteracion implementada: [`docs/NEXT_ITERATION_PROMPT.md`](docs/NEXT_ITERATION_PROMPT.md).
 
-La siguiente iteracion esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado y confirmacion transaccional con Resend. El historial completo de once migraciones, los tipos remotos y las variables de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
+La plataforma esta **implementada, desplegada y verificada en produccion**: incluye obligatorios visibles, borrador incompleto, entrega final estricta, selector de tecnologias, deadline por reto, restricciones para jurado, confirmacion transaccional con Resend y analisis IA no vinculante. El historial completo de doce migraciones y las variables requeridas de Production estan reconciliados. Un registro real confirmo el envio del correo mediante el outbox.
 
 ## Ejes tematicos desplegados
 
@@ -26,6 +26,20 @@ Produccion incorpora credenciales temporales para staff, cambio obligatorio, rec
 
 La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `email` o `correo`, muestra una vista previa y exige confirmacion. El servidor limita el contenido a texto plano y CTA internas, congela la campana en Supabase y usa lotes Resend de hasta 100 destinatarios con idempotencia estable. Una accion administrativa recupera campanas en cola, interrumpidas o parciales y solo reintenta errores transitorios. Las migraciones, API y vistas estan desplegadas y verificadas en el alias canonico; la comprobacion uso datos ficticios y no envio mensajes ni cambio claves reales.
 
+## Analisis IA de entregas desplegado
+
+Produccion incorpora un analisis automatico y no vinculante para cada nueva revision final `submitted`. Cuatro especialistas del OpenAI Agents SDK revisan en paralelo la alineacion con el reto, el producto desplegado, el codigo/arquitectura y la integracion de OpenAI; un quinto agente sintetiza un informe estructurado, limitaciones, preguntas sugeridas y una posible ponderacion basada en la rubrica activa. Esa ponderacion es solo una referencia: no completa el formulario del jurado, no escribe `evaluations` ni sustituye la revision humana.
+
+El servidor obtiene evidencia antes de invocar a los agentes. La demo se consulta con limites de red, tiempo y tamano, y el repositorio se inspecciona de forma acotada sin clonar, compilar ni ejecutar codigo. HTML, README, nombres de archivos y codigo se tratan como datos no confiables, no como instrucciones. Administracion puede abrir el panel lateral y reintentar informes fallidos o desactualizados; un jurado solo puede consultar los proyectos que tiene asignados.
+
+`submission_ai_analyses` funciona como outbox durable por revision: el trigger encola, un claim atomico asigna un lease con token de ejecucion unico y cada escritura final queda cercada por ese token. Los reintentos conservan un codigo de error seguro y acumulan los tokens consumidos incluso si un agente falla despues de respuestas parciales. El envio inicia el trabajo en segundo plano con `waitUntil`; por separado, un cooldown idempotente de 30 segundos absorbe dobles clics sobre la misma revision. El cron diario procesa como maximo dos analisis en paralelo para recuperar trabajo pendiente sin disparar costo o concurrencia sin limite. Publicar conserva el analisis si `submitted_at` no cambia, mientras volver a borrador o reenviar marca el informe anterior como desactualizado.
+
+Un `PATCH` final identico sobre una entrega que ya esta `submitted` es idempotente durante 30 segundos: conserva `submitted_at` y evita dobles clics. Despues de esa ventana, o al volver a borrador y reenviar, crea una revision aunque las URLs sean iguales, porque el deploy o repositorio externo puede haber cambiado. Cada entrega recibe hasta cinco revisiones automaticas; despues se reutiliza un unico marcador de cuota y administracion puede autorizar un reintento manual auditado. El hash de contenido cerca cada worker contra cambios no reflejados en la revision, pero no omite reanalisis legitimos posteriores a la ventana.
+
+La migracion `20260715051406_add_submission_ai_analysis.sql` esta aplicada como la numero 12 del historial remoto. `OPENAI_API_KEY` y `CRON_SECRET` existen como variables Sensitive de Vercel Production; el secreto del cron fue rotado y su autorizacion se verifico sin exponer valores. El deployment `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` esta `READY` en el alias canonico, conserva 12 Functions y no registro errores de runtime propios.
+
+La comprobacion real autorizada del worker proceso una entrega con capacidad de lote 2. El registro termino `completed` con `gpt-5.5`, cuatro informes especialistas, informe final, evidencia, ponderacion y confianza persistidos; la evidencia contiene 11 elementos `verified` y uno `partial`. La validacion local termino con TypeScript estricto, 137 pruebas, auditoria sin vulnerabilidades y dos builds limpios. En esta verificacion no hubo una sesion autenticada para volver a recorrer visualmente el panel lateral de administracion o jurado; su acceso y representacion permanecen cubiertos por contratos y pruebas, pero esa comprobacion visual desplegada queda pendiente.
+
 ## Capacidades
 
 - Registro unico por equipo para 1, 2 o 3 participantes.
@@ -38,6 +52,7 @@ La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `
 - Clave temporal, cambio obligatorio y recuperacion neutral para cuentas internas.
 - Panel administrativo para el evento existente mas reciente, etapas, fechas globales, limites, retos, rubrica, equipos, participantes, staff, difusion, asignaciones, proyectos y ranking privado.
 - Panel de jurado con formulario dinamico de calificacion.
+- Panel lateral de analisis IA no vinculante para administracion y jurados asignados.
 - Panel de mentor con equipos, integrantes, reto, avance y enlaces.
 - Rubrica inicial de 100 puntos orientada a construccion.
 - Auditoria de mutaciones de gestion y staff, y validacion Zod en las Functions.
@@ -49,6 +64,7 @@ La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `
 - El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
 - El registro manual que reutiliza `/api/registrations` todavia no crea una entrada propia de auditoria administrativa.
 - No existe webhook de entrega, rebote o queja; el estado `sent` confirma que Resend acepto el mensaje, no su entrega final en el buzon.
+- La verificacion de produccion del analisis IA cubrio migracion, secretos, worker y persistencia; no repitio visualmente el panel autenticado por falta de una sesion disponible.
 
 Supabase contiene el deadline por reto, el outbox y las invariantes nuevas. La aplicacion publicada hace cumplir los deadlines, oculta borradores al jurado y exige una entrega final completa. El detalle verificable esta en la documentacion de estado y en el prompt archivado de la iteracion.
 
@@ -96,6 +112,7 @@ La clave legada `service_role` no es necesaria para esta implementacion. Si un p
 - Vercel Functions para la API.
 - Supabase Postgres y Supabase Auth.
 - Resend para correo transaccional mediante outbox, remitente verificado e idempotencia.
+- OpenAI Agents SDK para cuatro analisis especialistas y una sintesis estructurada.
 - Zod para contratos de entrada.
 - Vitest para reglas de dominio.
 
@@ -157,6 +174,7 @@ El historial aplicado es:
 9. `supabase/migrations/20260714224056_index_broadcast_campaign_foreign_keys.sql`: cubre las claves foraneas de evento y creador de campana.
 10. `supabase/migrations/20260714230812_harden_broadcast_retry_and_idempotency.sql`: agrega clasificacion de errores, claves idempotentes persistidas y reanudacion atomica de campanas interrumpidas.
 11. `supabase/migrations/20260714230821_harden_staff_access_and_password_recovery.sql`: preserva el cambio obligatorio durante la activacion y reclama de forma atomica la cuota de recuperacion por correo e IP.
+12. `supabase/migrations/20260715051406_add_submission_ai_analysis.sql`: crea el outbox por revision, hash de contenido, cuota automatica acotada, triggers de encolado/invalidez, backfill de entregas finales, indices, RLS, grants exclusivos de servidor y el claim atomico con lease/token de ejecucion.
 
 No edites migraciones aplicadas; crea una nueva con:
 
@@ -190,6 +208,10 @@ Copia `.env.example` y completa solo el archivo local ignorado por Git:
 | `RESEND_FROM` | Servidor | Debe ser `OpenAI Build Week Manta <noreply@datatensei.ai>` |
 | `RESEND_REPLY_TO` | Servidor | Correo real de soporte u organizacion |
 | `APP_BASE_URL` | Servidor | URL canonica HTTPS usada en correos; produccion usa `https://oaibuildathon.vercel.app` |
+| `OPENAI_API_KEY` | Servidor | Credencial para ejecutar el analisis mediante OpenAI Agents SDK |
+| `OPENAI_ANALYSIS_MODEL` | Servidor, opcional | Modelo del analisis; el valor por defecto `gpt-5.5` fue verificado en produccion |
+| `GITHUB_TOKEN` | Servidor, opcional | Token de solo lectura para aumentar la cuota al inspeccionar repositorios publicos compatibles |
+| `CRON_SECRET` | Servidor | Bearer secreto con el que Vercel autoriza el worker de recuperacion |
 
 La integracion oficial de Supabase en Vercel genera `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_SECRET_KEY`. Para esta aplicacion Vite crea en Vercel los alias `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` con los valores publicos correspondientes, y genera `TEAM_SESSION_SECRET` de forma independiente. Nunca crees un alias `VITE_` para `SUPABASE_SECRET_KEY`.
 
@@ -253,7 +275,9 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 3. No pegues secretos en comandos, commits, issues o logs compartidos; usa el formulario seguro de Vercel o `vercel env add` de forma interactiva.
 4. Despliega y valida `/`, `/registro`, `/equipo`, `/login` y los paneles por rol.
 
-`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions. El proyecto usa el plan Hobby: para respetar su limite de 12 Functions por deployment, `/api/auth/me` y `/api/auth/password-recovery` comparten un entrypoint dinamico, al igual que `/api/admin/broadcasts` y `/api/admin/staff-access`; las URLs, metodos y controles de autorizacion no cambian. El deployment verificado confirma exactamente 12 Functions.
+El analisis IA ya esta habilitado en Production: la migracion `20260715051406_add_submission_ai_analysis.sql` ocupa la posicion 12 del historial remoto, `OPENAI_API_KEY` y `CRON_SECRET` estan configuradas como Sensitive y el worker autorizado completo una entrega real. Para otro entorno o una recuperacion futura, conserva este orden: aplicar y reconciliar la migracion, configurar los secretos server-only, confirmar Fluid Compute, redeployar y verificar `queued -> running -> completed` sin publicar secretos ni ejecutar codigo del proyecto.
+
+`vercel.json` configura el build de Vite, el fallback del SPA y cabeceras de seguridad. Las rutas `/api/*` permanecen como Functions. El proyecto usa el plan Hobby: para respetar su limite de 12 Functions por deployment, Auth, las acciones administrativas agrupadas y el panel/detalle del jurado usan dispatchers dinamicos sin cambiar las URLs publicas. El deployment verificado `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` contiene esos 12 entrypoints, asigna hasta 300 segundos a las Functions que inician o procesan el trabajo y programa `/api/admin/analysis-worker` a las `03:00 UTC` cada dia. La llamada autorizada del worker proceso un elemento con capacidad 2.
 
 ## Flujo operativo recomendado
 
@@ -261,10 +285,11 @@ genera `src/types/database.generated.ts`. No sustituye automaticamente el archiv
 2. Una persona registra cada equipo completo.
 3. Administracion crea mentores y jurados, confirma el envio de sus accesos y realiza asignaciones.
 4. Los equipos construyen y completan su entrega.
-5. Administracion abre la etapa de calificacion.
-6. Los jurados califican todos los criterios de sus equipos.
-7. Administracion verifica demos, publica proyectos y revisa el ranking privado.
-8. `results_public` puede configurarse, pero la exposicion publica de resultados requiere una implementacion adicional.
+5. Al enviar una revision final, el sistema encola el analisis IA y prepara el informe no vinculante para administracion y el jurado asignado.
+6. Administracion abre la etapa de calificacion.
+7. Los jurados contrastan el informe con la demo, el codigo y su propio criterio antes de calificar todos los criterios.
+8. Administracion verifica demos, publica proyectos y revisa el ranking privado.
+9. `results_public` puede configurarse, pero la exposicion publica de resultados requiere una implementacion adicional.
 
 ## Correo de registro con Resend
 
@@ -308,6 +333,9 @@ Los criterios, maximos, pesos y estados son configurables. El ranking usa el pro
 - Los tokens de sesion se guardan como HMAC y viajan en cookies HTTP-only.
 - Los rate limits de recuperacion guardan HMAC de correo e IP, nunca los valores originales.
 - Las respuestas publicas proyectan solo campos aprobados.
+- `OPENAI_API_KEY`, `GITHUB_TOKEN` y `CRON_SECRET` son exclusivos de servidor y nunca llevan prefijo `VITE_`; los informes no exponen trazas, prompts ni errores internos del proveedor.
+- La evidencia externa se limita y valida antes del modelo; los agentes no reciben herramientas de red y nunca ejecutan codigo de los equipos.
+- Solo administracion y el jurado asignado pueden leer el informe; la sugerencia IA no modifica la rubrica ni la evaluacion oficial.
 - CSP, HSTS, proteccion contra iframes y politicas de permisos se configuran en Vercel.
 - Turnstile puede activarse para el registro publico sin cambiar el codigo.
 
@@ -334,7 +362,7 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 |   |-- judge/
 |   `-- mentor/
 |-- server/                       # Seguridad, Auth, validacion y sesiones
-|-- docs/                         # Estado verificado y prompt de siguiente iteracion
+|-- docs/                         # Estado verificado y contrato de iteracion archivado
 |-- src/
 |   |-- components/
 |   |-- lib/
@@ -350,7 +378,7 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 
 - `AGENTS.md`: reglas de implementacion y seguridad.
 - `docs/IMPLEMENTATION_STATUS.md`: comportamiento desplegado, limitaciones y migraciones.
-- `docs/NEXT_ITERATION_PROMPT.md`: solicitud autocontenida para el siguiente bloque de implementacion.
+- `docs/NEXT_ITERATION_PROMPT.md`: contrato autocontenido de la iteracion ya implementada y archivada.
 - `.agents/skills/landing-maintenance`: mapa y limites de la landing.
 - `.agents/skills/buildathon-operations`: dominio, esquema y flujos operativos.
 - `PRODUCT.md`: direccion visual, tono y accesibilidad.

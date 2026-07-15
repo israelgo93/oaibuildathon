@@ -4,6 +4,7 @@ import { authenticatedApiRequest, errorMessage } from '@/lib/api'
 import { formatEcuadorDateTime, wasSubmittedOnTime } from '@/lib/dates'
 import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
+import { ProjectAiAnalysisPanel } from '@/components/system/ProjectAiAnalysisPanel'
 import type { EvaluationInput, EvaluationScoreInput, JudgeDashboardData } from '@/types/api'
 
 interface ScoreDraft {
@@ -18,6 +19,7 @@ export function JudgePage() {
   const [scoreDrafts, setScoreDrafts] = useState<Record<string, ScoreDraft>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [analysisOpen, setAnalysisOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -39,6 +41,10 @@ export function JudgePage() {
     () => dashboard?.teams.find((item) => item.team.id === selectedTeamId) ?? null,
     [dashboard, selectedTeamId],
   )
+  const selectedAnalysisSummary = useMemo(() => {
+    if (!dashboard || !selectedTeam?.submission) return null
+    return dashboard.submissionAnalyses.find((analysis) => analysis.submissionId === selectedTeam.submission?.id) ?? null
+  }, [dashboard, selectedTeam])
 
   useEffect(() => {
     if (!dashboard || !selectedTeam) return
@@ -119,7 +125,7 @@ export function JudgePage() {
         <div className="jury-layout">
           <aside className="jury-team-list" aria-label="Equipos asignados">
             {dashboard.teams.map((item) => (
-              <button key={item.team.id} type="button" className={selectedTeamId === item.team.id ? 'active' : ''} onClick={() => setSelectedTeamId(item.team.id)}>
+              <button key={item.team.id} type="button" className={selectedTeamId === item.team.id ? 'active' : ''} aria-pressed={selectedTeamId === item.team.id} onClick={() => { setSelectedTeamId(item.team.id); setAnalysisOpen(false) }}>
                 <strong>{item.team.name}</strong>
                 <span>{item.challenge?.title ?? 'Sin reto'}</span>
                 <small>{item.submission ? (item.evaluation?.submitted ? 'Evaluado' : item.evaluation ? 'Evaluacion en borrador' : 'Pendiente de evaluar') : 'Pendiente de entrega'}</small>
@@ -148,6 +154,7 @@ export function JudgePage() {
                       <a className="system-button" href={selectedTeam.submission.repository_url} target="_blank" rel="noreferrer">Ver codigo</a>
                       {selectedTeam.submission.presentation_url ? <a className="system-button" href={selectedTeam.submission.presentation_url} target="_blank" rel="noreferrer">Presentacion</a> : null}
                       {selectedTeam.submission.video_url ? <a className="system-button" href={selectedTeam.submission.video_url} target="_blank" rel="noreferrer">Video</a> : null}
+                      <button className="system-button ai-analysis-trigger" type="button" aria-haspopup="dialog" aria-expanded={analysisOpen} onClick={() => setAnalysisOpen(true)}>Ver analisis IA</button>
                     </div>
                     <details><summary>Contexto completo</summary><h3>Problema</h3><p>{selectedTeam.submission.problem}</p><h3>Solucion</h3><p>{selectedTeam.submission.solution}</p></details>
                   </>
@@ -175,6 +182,15 @@ export function JudgePage() {
           ) : null}
         </div>
       )}
+      <ProjectAiAnalysisPanel
+        endpoint="/api/judge/submission-analysis"
+        isOpen={analysisOpen}
+        onRequestClose={() => setAnalysisOpen(false)}
+        projectName={selectedTeam?.submission?.project_name ?? selectedTeam?.team.name ?? 'Proyecto'}
+        submissionId={selectedTeam?.submission?.id ?? null}
+        summary={selectedAnalysisSummary}
+        teamName={selectedTeam?.team.name ?? 'Equipo'}
+      />
     </SystemLayout>
   )
 }

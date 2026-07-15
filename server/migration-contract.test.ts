@@ -58,6 +58,14 @@ const staffRecoveryHardeningMigrationPath = join(
 )
 const staffRecoveryHardeningMigration = readFileSync(staffRecoveryHardeningMigrationPath, 'utf8')
 
+const submissionAiAnalysisMigrationPath = join(
+  process.cwd(),
+  'supabase',
+  'migrations',
+  '20260715051406_add_submission_ai_analysis.sql',
+)
+const submissionAiAnalysisMigration = readFileSync(submissionAiAnalysisMigrationPath, 'utf8')
+
 describe('contrato SQL de la iteracion', () => {
   it('crea deadline por reto y el outbox dentro de register_team', () => {
     expect(migration).toContain('add column submission_deadline_at timestamptz')
@@ -139,5 +147,61 @@ describe('contrato SQL de la iteracion', () => {
     expect(staffRecoveryHardeningMigration).toContain("when access_email_status = 'sending'")
     expect(staffRecoveryHardeningMigration).toContain("access_email_attempted_at >= now() - interval '15 minutes'")
     expect(staffRecoveryHardeningMigration).toContain('then true')
+  })
+
+  it('persiste una revision de analisis IA con resultados estructurados y limites', () => {
+    expect(submissionAiAnalysisMigration).toContain('create table public.submission_ai_analyses')
+    expect(submissionAiAnalysisMigration).toContain("status in ('queued', 'running', 'completed', 'failed', 'superseded')")
+    expect(submissionAiAnalysisMigration).toContain('unique (submission_id, source_submitted_at, prompt_version)')
+    expect(submissionAiAnalysisMigration).toContain('source_content_hash text not null')
+    expect(submissionAiAnalysisMigration).toContain("source_content_hash ~ '^[0-9a-f]{64}$'")
+    expect(submissionAiAnalysisMigration).toContain('lease_token uuid')
+    expect(submissionAiAnalysisMigration).toContain('create unique index submission_ai_analyses_lease_token_key')
+    expect(submissionAiAnalysisMigration).toContain('create index submission_ai_analyses_submission_idx')
+    expect(submissionAiAnalysisMigration).toContain('evidence_summary jsonb')
+    expect(submissionAiAnalysisMigration).toContain("jsonb_typeof(evidence_summary) = 'array'")
+    expect(submissionAiAnalysisMigration).toContain('specialist_reports jsonb')
+    expect(submissionAiAnalysisMigration).toContain('final_report jsonb')
+    expect(submissionAiAnalysisMigration).toContain('suggested_percentage between 0 and 100')
+    expect(submissionAiAnalysisMigration).toContain('confidence between 0 and 1')
+    expect(submissionAiAnalysisMigration).toContain('total_tokens = input_tokens + output_tokens')
+    expect(submissionAiAnalysisMigration).toContain('and suggested_percentage is not null')
+    expect(submissionAiAnalysisMigration).toContain('and confidence is not null')
+    expect(submissionAiAnalysisMigration).toContain('and evidence_summary is not null')
+    expect(submissionAiAnalysisMigration).toContain('and specialist_reports is not null')
+    expect(submissionAiAnalysisMigration).toContain('and trace_group_id is not null')
+  })
+
+  it('encola envios y reenvios sin duplicar la publicacion de la misma revision', () => {
+    expect(submissionAiAnalysisMigration).toContain('create trigger project_submissions_sync_ai_analysis')
+    expect(submissionAiAnalysisMigration).toContain("if new.status <> 'submitted' or new.submitted_at is null")
+    expect(submissionAiAnalysisMigration).toContain("v_requested_reason := 'resubmission'")
+    expect(submissionAiAnalysisMigration).toContain('private.submission_ai_content_hash(new)')
+    expect(submissionAiAnalysisMigration).toContain("v_automatic_revision_count >= 5")
+    expect(submissionAiAnalysisMigration).toContain("last_error_code = 'revision_quota_exceeded'")
+    expect(submissionAiAnalysisMigration).toContain("interval '30 seconds'")
+    expect(submissionAiAnalysisMigration).toContain("'superseded_by_draft'")
+    expect(submissionAiAnalysisMigration).toContain('on conflict (submission_id, source_submitted_at, prompt_version) do nothing')
+    expect(submissionAiAnalysisMigration).toContain("where submission.status in ('submitted', 'published')")
+    expect(submissionAiAnalysisMigration).toContain("'backfill'")
+  })
+
+  it('reclama analisis atomicamente con lease, reintentos y bloqueo no bloqueante', () => {
+    expect(submissionAiAnalysisMigration).toContain('create or replace function public.claim_submission_ai_analysis')
+    expect(submissionAiAnalysisMigration).toContain('p_analysis_id uuid default null')
+    expect(submissionAiAnalysisMigration).toContain('for update skip locked')
+    expect(submissionAiAnalysisMigration).toContain("lease_expires_at = now() + interval '10 minutes'")
+    expect(submissionAiAnalysisMigration).toContain('lease_token = gen_random_uuid()')
+    expect(submissionAiAnalysisMigration).toContain('lease_token = null')
+    expect(submissionAiAnalysisMigration).toContain('analysis.attempts < analysis.max_attempts')
+    expect(submissionAiAnalysisMigration).toContain("last_error_code = 'max_attempts_exceeded'")
+  })
+
+  it('mantiene la cola de analisis IA exclusiva para service_role', () => {
+    expect(submissionAiAnalysisMigration).toContain('alter table public.submission_ai_analyses enable row level security')
+    expect(submissionAiAnalysisMigration).toContain('revoke all on table public.submission_ai_analyses from public, anon, authenticated')
+    expect(submissionAiAnalysisMigration).toContain('grant select, insert, update, delete on table public.submission_ai_analyses to service_role')
+    expect(submissionAiAnalysisMigration).toContain('revoke all on function public.claim_submission_ai_analysis(uuid)')
+    expect(submissionAiAnalysisMigration).toContain('grant execute on function public.claim_submission_ai_analysis(uuid)')
   })
 })

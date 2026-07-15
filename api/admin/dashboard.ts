@@ -3,6 +3,7 @@ import type { Tables } from '../../src/types/database.js'
 import { requireRole } from '../../server/auth.js'
 import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
 import { getServerSupabase } from '../../server/supabase.js'
+import { listSubmissionAnalysisSummaries } from '../../server/submission-analysis-query.js'
 
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['GET'])
@@ -59,6 +60,13 @@ export default withErrorHandling(async (request, response) => {
   const evaluations: Tables<'evaluations'>[] = evaluationsResult.data ?? []
   const scores: Tables<'evaluation_scores'>[] = scoresResult.data ?? []
   const registrationEmailOutbox: Tables<'registration_email_outbox'>[] = registrationEmailOutboxResult.data ?? []
+  const submissionAnalyses = await listSubmissionAnalysisSummaries({
+    submissions,
+    teamChallenges,
+    challenges,
+    criteria,
+    canRetry: true,
+  })
   const dashboard: AdminDashboardData = {
     profile: publicProfile,
     events,
@@ -74,6 +82,7 @@ export default withErrorHandling(async (request, response) => {
     evaluations,
     scores,
     registrationEmailOutbox,
+    submissionAnalyses,
   }
 
   setPrivateResponse(response)

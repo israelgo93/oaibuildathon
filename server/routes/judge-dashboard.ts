@@ -1,10 +1,11 @@
-import type { JudgeDashboardData, JudgeTeamData } from '../../src/types/api.js'
+import type { JudgeDashboardData, JudgeTeamData, SubmissionAiAnalysisSummary } from '../../src/types/api.js'
 import type { Tables } from '../../src/types/database.js'
 import { effectiveSubmissionDeadline } from '../../src/lib/dates.js'
-import { requireRole } from '../../server/auth.js'
-import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
-import { getServerSupabase } from '../../server/supabase.js'
-import { submissionVisibleToJudge } from '../../server/judge-visibility.js'
+import { requireRole } from '../auth.js'
+import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../http.js'
+import { getServerSupabase } from '../supabase.js'
+import { submissionVisibleToJudge } from '../judge-visibility.js'
+import { listSubmissionAnalysisSummaries } from '../submission-analysis-query.js'
 
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['GET'])
@@ -28,6 +29,7 @@ export default withErrorHandling(async (request, response) => {
   const criteria: Tables<'evaluation_criteria'>[] = criteriaResult.data ?? []
   const assignments: Tables<'judge_assignments'>[] = assignmentsResult.data ?? []
   let teams: JudgeTeamData[] = []
+  let submissionAnalyses: SubmissionAiAnalysisSummary[] = []
 
   if (assignments.length > 0) {
     const teamIds = assignments.map((assignment) => assignment.team_id)
@@ -71,6 +73,14 @@ export default withErrorHandling(async (request, response) => {
     const submissionByTeam = new Map(submissions.map((submission) => [submission.team_id, submission]))
     const evaluationByTeam = new Map(evaluations.map((evaluation) => [evaluation.team_id, evaluation]))
 
+    submissionAnalyses = await listSubmissionAnalysisSummaries({
+      submissions: submissions.filter((submission) => submission.status !== 'draft'),
+      teamChallenges,
+      challenges,
+      criteria,
+      canRetry: false,
+    })
+
     teams = assignments.flatMap((assignment) => {
       const team = teamById.get(assignment.team_id)
       if (!team) return []
@@ -105,7 +115,7 @@ export default withErrorHandling(async (request, response) => {
     })
   }
 
-  const dashboard: JudgeDashboardData = { profile: publicProfile, event, criteria, teams }
+  const dashboard: JudgeDashboardData = { profile: publicProfile, event, criteria, teams, submissionAnalyses }
   setPrivateResponse(response)
   response.status(200).json(dashboard)
 })

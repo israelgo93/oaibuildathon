@@ -1,6 +1,6 @@
 # Domain and schema
 
-This reference describes the deployed schema and application verified on 2026-07-14. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is actually deployed.
+This reference describes the deployed schema and application verified through 2026-07-15. `docs/IMPLEMENTATION_STATUS.md` remains authoritative about what is actually deployed.
 
 ## Core entities
 
@@ -19,6 +19,15 @@ This reference describes the deployed schema and application verified on 2026-07
 - `evaluations` and `evaluation_scores`: one evaluation per judge/team and one score per criterion.
 - `audit_logs`: privileged management and staff action trail. Manual team registration through `/api/registrations` does not currently add an administrative audit row.
 
+## Submission analysis schema deployed
+
+- `submission_ai_analyses`: one durable record per `(submission_id, source_submitted_at, prompt_version)`, with submission/team/event identity, source-content hash, `queued|running|completed|failed|superseded` state, request reason, attempts, next retry, lease token, structured evidence/reports, cumulative token totals, safe error code, and trace group identifier.
+- `private.sync_submission_ai_analysis()`: queues a new final revision, avoids duplicates when publication preserves `submitted_at`, and supersedes analysis when a project returns to draft or is resubmitted.
+- `public.claim_submission_ai_analysis(uuid)`: service-only atomic claim with `FOR UPDATE SKIP LOCKED`, a ten-minute lease, a unique execution token, expired-worker recovery, and maximum-attempt enforcement. Completion/failure must match the execution token. External network/model work happens after this transaction finishes.
+- The migration backfills existing `submitted`/`published` revisions, enables RLS, revokes `anon`/`authenticated`, grants only `service_role`, and indexes foreign keys plus queue/lease lookup paths.
+
+This extension is applied in production as `20260715051406_add_submission_ai_analysis.sql`, migration 12. A production worker claim completed one analysis with structured evidence, four specialist reports, synthesis, suggestion and confidence persisted.
+
 ## Current invariants
 
 - Teams contain 1-3 participants and never more than the configured event maximum.
@@ -35,6 +44,9 @@ This reference describes the deployed schema and application verified on 2026-07
 - For an existing mentor/judge, Resend acceptance happens before Auth password rotation; provider failure preserves the previous credential.
 - Bulk staff-access actions require confirmation, target only active mentors/judges and never include administrators.
 - One broadcast accepts at most 500 unique normalized recipients. Resend batches contain at most 100 recipients and only transient eligible failures are retried.
+- Only a new `submitted_at` queues analysis. Publishing the same revision does not duplicate it; returning to draft or resubmitting makes the previous report stale/superseded.
+- An identical final PATCH within 30 seconds preserves `submitted_at` to absorb duplicate clicks. After that window, and after a return to draft, unchanged URLs may still represent a new external deploy/repository revision. Automatic analysis is limited to five revisions per submission; one reusable quota marker bounds storage and an audited admin retry is the override.
+- AI output is advisory and cannot insert or update `evaluations` or `evaluation_scores`. Only administrators and judges assigned to the matching team/event may read the projected detail.
 
 ## Dates and visibility
 
@@ -46,6 +58,8 @@ This reference describes the deployed schema and application verified on 2026-07
 ## Access boundary
 
 Direct table grants are revoked from `anon` and `authenticated`. Vercel Functions use the server secret after applying application authorization. Supabase Auth remains available through the publishable key. RLS is enabled on every public table as defense in depth.
+
+The AI table follows the same boundary. Its raw JSON, usage, trace identifier, retry metadata, and internal errors remain service-only; APIs return a typed projection and re-check admin role or judge assignment.
 
 ## Applied migration history
 
@@ -60,6 +74,7 @@ Direct table grants are revoked from `anon` and `authenticated`. Vercel Function
 9. `20260714224056_index_broadcast_campaign_foreign_keys.sql`: indexes for broadcast event and creator foreign keys.
 10. `20260714230812_harden_broadcast_retry_and_idempotency.sql`: stable recipient idempotency, retry classification and atomic recovery of interrupted campaigns.
 11. `20260714230821_harden_staff_access_and_password_recovery.sql`: mandatory-change preservation and atomic recovery quota claims by email/IP.
+12. `20260715051406_add_submission_ai_analysis.sql`: revision-scoped AI analysis outbox, content hash, cooldown/quota, trigger/backfill, RLS/service grants and fenced lease claim.
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 
@@ -73,4 +88,4 @@ The default 100-point construction-focused rubric is: functional product 30, use
 
 ## Deployed schema and application
 
-All eleven migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft, final submission, challenge guidance, staff access, password recovery and broadcast safeguards are verified. Staff/broadcast QA uses fictitious intercepted data and never sends messages or rotates real credentials.
+All twelve migrations are applied to project `iexmlbslfnckrdtkwuir`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft, final submission, challenge guidance, staff access, password recovery, broadcast safeguards and the submission-analysis backend are verified. The latest production worker processed one final submission to `completed` with `gpt-5.5`, four specialist reports and 12 evidence summaries (11 verified, one partial), without runtime errors or communication/account side effects. The authenticated admin/judge panel was not visually repeated in that deployment because no session was available.

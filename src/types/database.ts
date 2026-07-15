@@ -8,6 +8,8 @@ export type AccessEmailStatus = 'not_sent' | 'sending' | 'sent' | 'failed'
 export type BroadcastCtaKey = 'none' | 'landing' | 'registration' | 'team_portal' | 'staff_login'
 export type BroadcastCampaignStatus = 'queued' | 'processing' | 'completed' | 'partial' | 'failed'
 export type BroadcastRecipientStatus = 'pending' | 'processing' | 'sent' | 'failed'
+export type SubmissionAiAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed' | 'superseded'
+export type SubmissionAiAnalysisRequestedReason = 'submission' | 'resubmission' | 'backfill' | 'manual'
 
 export type EventRow = {
   id: string
@@ -186,6 +188,39 @@ export type ProjectSubmissionRow = {
   updated_at: string
 }
 
+export type SubmissionAiAnalysisRow = {
+  id: string
+  submission_id: string
+  team_id: string
+  event_id: string
+  source_submitted_at: string
+  source_content_hash: string
+  status: SubmissionAiAnalysisStatus
+  requested_reason: SubmissionAiAnalysisRequestedReason
+  prompt_version: string
+  context_fingerprint: string | null
+  model: string | null
+  attempts: number
+  max_attempts: number
+  next_attempt_at: string | null
+  lease_expires_at: string | null
+  lease_token: string | null
+  started_at: string | null
+  completed_at: string | null
+  evidence_summary: Json | null
+  specialist_reports: Json | null
+  final_report: Json | null
+  suggested_percentage: number | null
+  confidence: number | null
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+  trace_group_id: string | null
+  last_error_code: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type EvaluationCriterionRow = {
   id: string
   event_id: string
@@ -267,6 +302,7 @@ export interface Database {
       team_members: TableDefinition<TeamMemberRow, InsertRow<TeamMemberRow, 'team_id' | 'event_id' | 'position' | 'full_name' | 'email'>>
       team_challenges: TableDefinition<TeamChallengeRow, InsertRow<TeamChallengeRow, 'team_id' | 'challenge_id' | 'event_id'>>
       project_submissions: TableDefinition<ProjectSubmissionRow, InsertRow<ProjectSubmissionRow, 'team_id' | 'event_id'>>
+      submission_ai_analyses: TableDefinition<SubmissionAiAnalysisRow, InsertRow<SubmissionAiAnalysisRow, 'submission_id' | 'team_id' | 'event_id' | 'source_submitted_at' | 'source_content_hash' | 'requested_reason'>>
       evaluation_criteria: TableDefinition<EvaluationCriterionRow, InsertRow<EvaluationCriterionRow, 'event_id' | 'name' | 'description' | 'max_score'>>
       judge_assignments: TableDefinition<JudgeAssignmentRow, InsertRow<JudgeAssignmentRow, 'event_id' | 'judge_id' | 'team_id'>>
       evaluations: TableDefinition<EvaluationRow, InsertRow<EvaluationRow, 'event_id' | 'team_id' | 'judge_id'>>
@@ -321,6 +357,10 @@ export interface Database {
       claim_broadcast_campaign: {
         Args: { p_campaign_id: string }
         Returns: BroadcastCampaignRow
+      }
+      claim_submission_ai_analysis: {
+        Args: { p_analysis_id?: string }
+        Returns: SubmissionAiAnalysisRow
       }
       resume_broadcast_campaign: {
         Args: { p_campaign_id: string }

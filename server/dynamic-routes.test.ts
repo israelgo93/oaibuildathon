@@ -8,15 +8,24 @@ const routeSpies = vi.hoisted(() => ({
   passwordRecovery: vi.fn(async () => undefined),
   broadcasts: vi.fn(async () => undefined),
   staffAccess: vi.fn(async () => undefined),
+  analysisWorker: vi.fn(async () => undefined),
+  submissionAnalyses: vi.fn(async () => undefined),
+  judgeDashboard: vi.fn(async () => undefined),
+  judgeSubmissionAnalysis: vi.fn(async () => undefined),
 }))
 
 vi.mock('./routes/auth-me.js', () => ({ default: routeSpies.authMe }))
 vi.mock('./routes/auth-password-recovery.js', () => ({ default: routeSpies.passwordRecovery }))
 vi.mock('./routes/admin-broadcasts.js', () => ({ default: routeSpies.broadcasts }))
 vi.mock('./routes/admin-staff-access.js', () => ({ default: routeSpies.staffAccess }))
+vi.mock('./routes/admin-analysis-worker.js', () => ({ default: routeSpies.analysisWorker }))
+vi.mock('./routes/admin-submission-analyses.js', () => ({ default: routeSpies.submissionAnalyses }))
+vi.mock('./routes/judge-dashboard.js', () => ({ default: routeSpies.judgeDashboard }))
+vi.mock('./routes/judge-submission-analysis.js', () => ({ default: routeSpies.judgeSubmissionAnalysis }))
 
 import handleAdminRoute from '../api/admin/[action].js'
 import handleAuthRoute from '../api/auth/[action].js'
+import handleJudgeRoute from '../api/judge/[action].js'
 
 function createRequest(url: string | undefined): ApiRequest {
   const request = { url } as unknown as ApiRequest
@@ -88,7 +97,7 @@ describe('dispatchers dinamicos de Vercel', () => {
     expect(recoveryCall[1]).toBe(recoveryResponse)
   })
 
-  it('despacha las dos acciones administrativas sin cambiar request ni response', async () => {
+  it('despacha las acciones administrativas sin cambiar request ni response', async () => {
     const broadcastsRequest = createRequest('/api/admin/broadcasts')
     const broadcastsResponse = createResponse().response
     await handleAdminRoute(broadcastsRequest, broadcastsResponse)
@@ -104,17 +113,44 @@ describe('dispatchers dinamicos de Vercel', () => {
     const staffCall = routeSpies.staffAccess.mock.calls[0] as unknown as [ApiRequest, ApiResponse]
     expect(staffCall[0]).toBe(staffRequest)
     expect(staffCall[1]).toBe(staffResponse)
+
+    const analysesRequest = createRequest('/api/admin/submission-analyses?submissionId=123')
+    const analysesResponse = createResponse().response
+    await handleAdminRoute(analysesRequest, analysesResponse)
+    expect(routeSpies.submissionAnalyses).toHaveBeenCalledTimes(1)
+
+    const workerRequest = createRequest('/api/admin/analysis-worker')
+    const workerResponse = createResponse().response
+    await handleAdminRoute(workerRequest, workerResponse)
+    expect(routeSpies.analysisWorker).toHaveBeenCalledTimes(1)
+  })
+
+  it('despacha el panel y el detalle de analisis del jurado', async () => {
+    const dashboardRequest = createRequest('/api/judge/dashboard')
+    const dashboardResponse = createResponse().response
+    await handleJudgeRoute(dashboardRequest, dashboardResponse)
+    expect(routeSpies.judgeDashboard).toHaveBeenCalledTimes(1)
+
+    const analysisRequest = createRequest('/api/judge/submission-analysis?submissionId=123')
+    const analysisResponse = createResponse().response
+    await handleJudgeRoute(analysisRequest, analysisResponse)
+    expect(routeSpies.judgeSubmissionAnalysis).toHaveBeenCalledTimes(1)
   })
 
   it('responde 404 privado para acciones desconocidas o ambiguas', async () => {
     await expectNotFound(handleAuthRoute, '/api/auth/otra')
     await expectNotFound(handleAuthRoute, '/api/admin/me')
     await expectNotFound(handleAdminRoute, '/api/admin/%E0%A4%A')
+    await expectNotFound(handleJudgeRoute, '/api/judge/otra')
     await expectNotFound(handleAdminRoute, undefined)
     expect(routeSpies.authMe).not.toHaveBeenCalled()
     expect(routeSpies.passwordRecovery).not.toHaveBeenCalled()
     expect(routeSpies.broadcasts).not.toHaveBeenCalled()
     expect(routeSpies.staffAccess).not.toHaveBeenCalled()
+    expect(routeSpies.analysisWorker).not.toHaveBeenCalled()
+    expect(routeSpies.submissionAnalyses).not.toHaveBeenCalled()
+    expect(routeSpies.judgeDashboard).not.toHaveBeenCalled()
+    expect(routeSpies.judgeSubmissionAnalysis).not.toHaveBeenCalled()
   })
 
   it('mantiene el proyecto Hobby en doce entrypoints de Functions', () => {
@@ -126,9 +162,11 @@ describe('dispatchers dinamicos de Vercel', () => {
     expect(entrypoints).toHaveLength(12)
     expect(entrypoints).toContain('admin/[action].ts')
     expect(entrypoints).toContain('auth/[action].ts')
+    expect(entrypoints).toContain('judge/[action].ts')
     expect(entrypoints).not.toContain('admin/broadcasts.ts')
     expect(entrypoints).not.toContain('admin/staff-access.ts')
     expect(entrypoints).not.toContain('auth/me.ts')
     expect(entrypoints).not.toContain('auth/password-recovery.ts')
+    expect(entrypoints).not.toContain('judge/dashboard.ts')
   })
 })
