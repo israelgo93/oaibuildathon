@@ -10,7 +10,10 @@ This reference describes the deployed schema and application verified on 2026-07
 - `team_members`: one to three builders; email is unique within an event; exactly one member is the primary contact.
 - `team_challenges`: exactly one selected challenge per team.
 - `project_submissions`: one project per team with draft, submitted, or published state; fields include project name, short description, problem, solution, `tech_stack text[]`, demo, repository, presentation, video, `submitted_at`, and `published_at`.
-- `profiles`: Supabase Auth users with admin, judge, or mentor role.
+- `profiles`: Supabase Auth users with admin, judge, or mentor role, mandatory-change state, credential version and access-email delivery state.
+- `password_reset_requests`: HMAC-only recovery quota evidence for email/IP limits; it never stores the original email or IP.
+- `broadcast_campaigns` and `broadcast_recipients`: confirmed participant communications, normalized recipients, stable idempotency keys, batch progress and retry classification.
+- `registration_email_outbox`: transactional registration confirmation state, attempts, provider ID and safe retry metadata.
 - `judge_assignments` and `mentor_assignments`: explicit team access.
 - `evaluation_criteria`: dynamic rubric with maximum score, weight, order, and active state.
 - `evaluations` and `evaluation_scores`: one evaluation per judge/team and one score per criterion.
@@ -28,6 +31,10 @@ This reference describes the deployed schema and application verified on 2026-07
 - Judges can score only assigned teams with `submitted` or `published` projects while scoring is open; both API and SQL enforce the rule.
 - Submitted evaluations contain every active criterion and cannot exceed criterion maxima.
 - Mentors see only assigned teams.
+- Temporary credentials are generated in server memory and never stored in tables, responses, audit payloads or logs.
+- For an existing mentor/judge, Resend acceptance happens before Auth password rotation; provider failure preserves the previous credential.
+- Bulk staff-access actions require confirmation, target only active mentors/judges and never include administrators.
+- One broadcast accepts at most 500 unique normalized recipients. Resend batches contain at most 100 recipients and only transient eligible failures are retried.
 
 ## Dates and visibility
 
@@ -49,6 +56,10 @@ Direct table grants are revoked from `anon` and `authenticated`. Vercel Function
 5. `20260714131931_index_registration_email_outbox_team_event.sql`: covering index for the outbox composite foreign key.
 6. `20260714132323_fix_assignment_role_trigger.sql`: safe role validation for judge and mentor assignment triggers.
 7. `20260714205820_add_challenge_themes.sql`: thematic axes, suggested topics, seeded guidance for the three challenges, and list cardinality constraints.
+8. `20260714223749_add_staff_access_and_broadcasts.sql`: temporary-credential state, password-recovery quota, broadcast campaigns/recipients, service-only grants and atomic functions.
+9. `20260714224056_index_broadcast_campaign_foreign_keys.sql`: indexes for broadcast event and creator foreign keys.
+10. `20260714230812_harden_broadcast_retry_and_idempotency.sql`: stable recipient idempotency, retry classification and atomic recovery of interrupted campaigns.
+11. `20260714230821_harden_staff_access_and_password_recovery.sql`: mandatory-change preservation and atomic recovery quota claims by email/IP.
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 
@@ -62,4 +73,4 @@ The default 100-point construction-focused rubric is: functional product 30, use
 
 ## Deployed schema and application
 
-All seven migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft, final submission and challenge guidance were verified with real browser flows.
+All eleven migrations are applied to project `iexmlbslfnckrdtkwuir`. Generated types were refreshed from the remote schema and reconciled with `src/types/database.ts`. The APIs and UI are deployed at `https://oaibuildathon.vercel.app`; registration, team session, partial draft, final submission, challenge guidance, staff access, password recovery and broadcast safeguards are verified. Staff/broadcast QA uses fictitious intercepted data and never sends messages or rotates real credentials.

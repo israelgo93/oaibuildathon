@@ -17,11 +17,21 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 
 1. Edit dates, team limits, stage switches, showcase visibility, and the result-visibility flag for the most recent event. The UI does not create an event.
 2. Create or edit challenges, their thematic axes and suggested topics, and rubric criteria.
-3. Create Auth users for admins, judges, and mentors; the UI lists them but does not deactivate, delete, or reset them.
+3. Create Auth users for admins, judges, and mentors. For mentors/judges, enter a temporary password or let the server generate it; creation sends role-specific access instructions and the next login requires a password change.
 4. Register a team manually through the same registration endpoint used by the public flow.
 5. Assign judges and mentors to teams.
 6. Review submissions, change state, and publish approved projects.
 7. Monitor private weighted results and completed evaluations. `results_public` has no public consumer today.
+8. From Personas, notify one active mentor/judge, only pending profiles, or all active mentors/judges after explicit confirmation. Bulk actions never include administrators and the UI does not delete or deactivate accounts.
+9. From Difusion, paste or import TXT/CSV recipients, review deduplication and preview, choose an internal CTA, confirm the draft and then start or safely resume the campaign.
+
+## Internal account access and recovery
+
+1. Staff sign in at `/login`. A temporary credential redirects to `/cambiar-contrasena` and server authorization blocks protected work until the password changes.
+2. `Olvide mi contrasena` accepts an email and returns the same neutral response whether or not an active account exists.
+3. The server claims HMAC-based email/IP quota atomically and sends the Supabase recovery link through Resend without exposing account existence.
+4. Re-notification of an existing mentor/judge generates a new temporary credential. Resend must accept the message before Auth is updated; provider failure preserves the previous password.
+5. Verification never exercises real bulk notification, password rotation or participant broadcast.
 
 ## Judge: current behavior
 
@@ -42,6 +52,8 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 - Submission: `draft -> submitted -> published`; a team edit can return it to `draft`, and administration can set `draft`, `submitted`, or `published`.
 - Team: `registered -> active`; administration can mark `withdrawn` or `disqualified`.
 - Evaluation: draft (`submitted=false`) -> final (`submitted=true`) while scoring is open.
+- Staff access email: `not_sent|failed|sent -> sending -> sent|failed`; every successful re-notification increments the credential version and requires a password change.
+- Broadcast: `queued -> processing -> completed|partial|failed`; eligible queued, stale processing, partial or failed campaigns can resume, while permanent failures are not retried.
 
 ## Workflow deployed on 2026-07-14
 
