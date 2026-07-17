@@ -541,7 +541,7 @@ function App() {
       <main id="main-content">
         <section className="hero" id="top" aria-labelledby="hero-title" ref={heroRef}>
           <div className="hero-stage">
-            <div className="hero-visual">
+            <div className={reduceMotion ? 'hero-visual' : 'hero-visual hero-visual-video'}>
               <img
                 src={HERO_IMAGE}
                 srcSet={`${HERO_IMAGE_SMALL} 1280w, ${HERO_IMAGE} 2560w, ${HERO_IMAGE_4K} 3840w`}
@@ -559,7 +559,11 @@ function App() {
                   preload="auto"
                   aria-hidden="true"
                 >
-                  <source src={HERO_VIDEO} type="video/mp4" media="(min-width: 761px)" />
+                  <source
+                    src={HERO_VIDEO}
+                    type="video/mp4"
+                    media="(min-width: 761px) and (orientation: landscape)"
+                  />
                 </video>
               ) : null}
             </div>

@@ -349,8 +349,18 @@ p {
 }
 
 .hero-video {
+  inset: auto;
+  top: 50%;
+  left: 50%;
   z-index: 1;
+  width: min(100%, 1600px, calc(100svh * 16 / 9));
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
   background: transparent;
+  transform: translate(-50%, -50%);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 70%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at center, #000 70%, transparent 100%);
   pointer-events: none;
 }
 
@@ -2530,6 +2540,22 @@ p {
 
   .countdown-actions {
     margin-top: 28px;
+  }
+}
+
+@media (min-width: 761px) and (orientation: landscape) {
+  .hero-visual-video {
+    background: var(--bg-deep) url('/assets/deep-space-1600.webp') center / cover no-repeat;
+  }
+
+  .hero-visual-video > img {
+    opacity: 0;
+  }
+}
+
+@media (min-width: 761px) and (orientation: portrait) {
+  .hero-video {
+    display: none;
   }
 }
 
