@@ -147,10 +147,10 @@ export const adminActionSchema = z.discriminatedUnion('action', [
     location: z.string().trim().max(160),
     startsAt: z.string().datetime({ offset: true }),
     endsAt: z.string().datetime({ offset: true }),
-    submissionsCloseAt: z.string().datetime({ offset: true }).nullable(),
+    submissionsCloseAt: z.string().datetime({ offset: true }).nullable().default(null),
     minTeamSize: z.number().int().min(1).max(3),
     maxTeamSize: z.number().int().min(1).max(3),
-    copyCriteriaFromEventId: z.string().uuid().nullable(),
+    copyCriteriaFromEventId: z.string().uuid().nullable().default(null),
   }),
   z.object({
     action: z.literal('update_event'),
