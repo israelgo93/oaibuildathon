@@ -20,10 +20,10 @@ export function ShowcaseSection() {
       <div className="page-shell">
         <div className="showcase-heading">
           <div>
-            <p className="section-mark">Construido en Manta</p>
+            <p className="section-mark">Construido en Manta · Edición inaugural</p>
             <h2 id="showcase-title">Proyectos que ya llegaron a demo.</h2>
           </div>
-          <p>Entregas completadas por los equipos de OpenAI Build Week y verificadas por la organizacion.</p>
+          <p>Entregas completadas y verificadas por la organizacion en la Buildathon de Manta, el 15 de julio.</p>
         </div>
         <div className="showcase-grid">
           {projects.map((project, index) => (
@@ -35,8 +35,26 @@ export function ShowcaseSection() {
               <p className="showcase-description">{project.shortDescription}</p>
               {project.techStack.length > 0 ? <ul>{project.techStack.slice(0, 5).map((technology) => <li key={technology}>{technology}</li>)}</ul> : null}
               <div className="showcase-links">
-                {project.demoUrl ? <a href={project.demoUrl} target="_blank" rel="noreferrer">Ver demo <ProjectArrow /></a> : null}
-                {project.repositoryUrl ? <a href={project.repositoryUrl} target="_blank" rel="noreferrer">Codigo <ProjectArrow /></a> : null}
+                {project.demoUrl ? (
+                  <a
+                    href={project.demoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Ver demo de ${project.projectName}; se abre en una pestaña nueva`}
+                  >
+                    Ver demo <ProjectArrow />
+                  </a>
+                ) : null}
+                {project.repositoryUrl ? (
+                  <a
+                    href={project.repositoryUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Ver codigo de ${project.projectName}; se abre en una pestaña nueva`}
+                  >
+                    Codigo <ProjectArrow />
+                  </a>
+                ) : null}
               </div>
             </article>
           ))}

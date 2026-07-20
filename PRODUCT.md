@@ -2,7 +2,7 @@
 
 ## Producto
 
-OpenAI Build Week Manta combina una landing publica con una plataforma operativa para una Buildathon presencial de una jornada.
+OpenAI Build Week en Ecuador combina una landing publica con una plataforma operativa para Buildathons presenciales de una jornada. La edicion inaugural fue en Manta el 15 de julio de 2026; la edicion vigente en la landing es Portoviejo, 21 de julio de 2026.
 
 ## Estado de producto
 
@@ -35,7 +35,7 @@ Para impacto local, los ejes priorizan economia costera, agro y agua, turismo, e
 
 ## Proposito
 
-Promocionar la OpenAI Build Week Community Buildathon de Manta y llevar a cada equipo desde el registro hasta una demo funcional. El sistema debe reducir coordinacion manual y mantener en un solo flujo los retos, equipos, participantes, mentoria, entregas, evaluacion y vitrina.
+Promocionar la OpenAI Build Week Community Buildathon vigente (Portoviejo) y llevar a cada equipo desde el registro hasta una demo funcional, preservando la historia de la edicion inaugural de Manta (ganadores, sponsors y poster). El sistema debe reducir coordinacion manual y mantener en un solo flujo los retos, equipos, participantes, mentoria, entregas, evaluacion y vitrina.
 
 No es un proceso extenso de ideacion. La experiencia prioriza construir, probar, iterar, documentar y demostrar dentro del tiempo disponible.
 
@@ -69,15 +69,16 @@ Evitar la estetica gamer de neon saturado, dashboards SaaS genericos, plantillas
 ## Principios de diseno
 
 - Convertir informacion en impulso: cada bloque acerca a construir, registrar o presentar.
-- Conectar Manta con el mundo: la escala global refuerza el protagonismo local.
+- Conectar Manabi con el mundo: la escala global refuerza el protagonismo local.
 - Hacer visible el proceso: explicar que se aprende construyendo y que la meta es una demo funcional.
 - Movimiento con proposito: scroll, transiciones y profundidad apoyan la narrativa de lanzamiento.
+- Coreografia adaptativa: la secuencia extensa pertenece a escritorio horizontal; tablet vertical y movil reciben una lectura lineal mas corta, sin video ni desplazamientos horizontales.
 - Claridad bajo espectaculo: fechas, agenda, premios y llamadas a la accion permanecen inequivocas.
 - Paneles accionables: estado, siguiente accion y permisos deben ser evidentes para cada rol.
 
 ## Accesibilidad e inclusion
 
-Objetivo WCAG 2.2 AA, navegacion por teclado, contraste suficiente, estructura semantica, foco visible y contenido comprensible en espanol. Todas las animaciones respetan `prefers-reduced-motion`; el contenido funciona sin movimiento avanzado ni WebGL.
+Objetivo WCAG 2.2 AA, navegacion por teclado, contraste suficiente, estructura semantica, foco visible y contenido comprensible en espanol. Todas las animaciones respetan `prefers-reduced-motion`; esa preferencia conserva todas las escenas y acciones en su orden como un documento lineal completo, sin pinning, video, desplazamientos horizontales ni WebGL.
 
 Los formularios deben marcar visualmente los campos obligatorios con `*`, explicar su significado y comunicar la obligatoriedad a tecnologias de asistencia sin depender solo del color. Los campos opcionales deben indicarse de forma explicita, y los errores deben identificar el campo y la accion necesaria.
 

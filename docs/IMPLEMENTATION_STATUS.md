@@ -1,8 +1,26 @@
 # Estado de implementacion
 
-Ultima verificacion tecnica: 15 de julio de 2026.
+Ultima verificacion tecnica: 16 de julio de 2026.
 
 Este documento separa el comportamiento desplegado, sus limitaciones verificadas y el contrato de iteracion ya archivado. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
+
+## Countdown de entregas verificado localmente
+
+La landing y el portal del equipo incorporan una cuenta regresiva en dias, horas, minutos y segundos hasta el cierre efectivo de entregas. La landing consulta `/api/public-config` y usa el primer corte entre el deadline global y los deadlines de los retos; el portal usa `submissionDeadlineAt`, que ya representa el menor corte para el reto elegido. Al llegar exactamente a cero, el portal vuelve a renderizarse, bloquea los campos y deja de ofrecer las acciones de borrador o envio; el servidor conserva la autoridad final sobre el cierre.
+
+La configuracion de produccion consultada el 15 de julio de 2026 mantiene las entregas abiertas y fija todos los retos y el corte global en `2026-07-15T20:45:00+00:00`, equivalente a las 15:45 de `America/Guayaquil (UTC-5)`. A las 13:12 faltaban 2 horas y 32 minutos, no cuatro horas: las 18:00 corresponden al final del evento, no al cierre de entregas.
+
+El cambio se verifico localmente con TypeScript estricto, pruebas de borde antes/en/despues del deadline y navegador en 1440x1000 y 390x844. La landing y el portal no presentaron errores ni warnings de consola. Este countdown aun no se declara desplegado; requiere publicar el cambio para que aparezca en `https://oaibuildathon.vercel.app`.
+
+## Landing cinematografica por escenas verificada localmente
+
+La landing local se separo en escenas mantenibles bajo `src/landing/` sin cambiar React/Vite, las rutas operativas, el contenido oficial ni los assets publicados. Una orbita/horizonte persistente conecta hero, Manta, contexto global, Sol/Terra/Luna, agenda, premios y cierre lunar. Fechas, enlaces, agenda, modelos, premios, takeaways y comunidades se centralizan en `src/landing/content.ts` y quedan protegidos por pruebas de regresion. El countdown conserva `/api/public-config`, el menor deadline global/por reto, el fallback vigente y los estados abierto/cerrado.
+
+La coreografia sticky y el video existen solo en escritorio horizontal desde 960x700. El video 1280x720 se renderiza como maximo a su ancho intrinseco, usa el primer 72% de su duracion y responde al scroll en ambos sentidos. Tablet vertical y movil usan una lectura lineal mas corta, sin video ni desplazamientos horizontales. `prefers-reduced-motion` activa el documento lineal completo a cualquier ancho, sin sticky, video, contenido superpuesto ni WebGL. Three.js permanece aislado en la escena final y su chunk se solicita solo cuando esa escena se acerca al viewport.
+
+La verificacion de navegador cubrio 1440x1000, 1280x800, 1024x768, 960x700, 768x1024, 430x932, 390x844 y 360x800. En todos los casos el ancho del documento coincidio con el viewport; 768 vertical y los tres anchos de telefono no montaron video. En 960x700 se comprobaron completas la primera y ultima fila de agenda. Tambien se verificaron el scrub bidireccional, foco visible, skip link con destino enfocable, enlaces y anclas validos, controles desvanecidos fuera del orden de foco, countdown abierto/cerrado, vitrina vacia sin espacio residual y vitrinas ficticias de uno y seis proyectos sin desalinear la orbita ni el cierre. La compilacion servida localmente no produjo errores ni warnings de aplicacion en consola.
+
+La bateria local termino con TypeScript estricto, 145 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos limpios. Esta arquitectura cinematografica y el countdown asociado **no se declaran desplegados**; `https://oaibuildathon.vercel.app` sigue descrito exclusivamente por las secciones de produccion verificadas de este documento.
 
 ## Analisis IA desplegado y verificado
 

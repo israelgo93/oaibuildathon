@@ -134,7 +134,7 @@ Para trabajar solo en la landing:
 npm run dev
 ```
 
-Para probar tambien `/api/*`, usa el runtime local de Vercel una vez configuradas las variables:
+En `npm run dev`, Vite no ejecuta las Vercel Functions de `api/`; solo las lecturas publicas `/api/showcase` y `/api/public-config` se proxyan hacia produccion (ver `vite.config.ts`) para que la vitrina y el countdown muestren datos reales. El resto de `/api/*` requiere el runtime local de Vercel una vez configuradas las variables:
 
 ```powershell
 npx vercel@latest dev
@@ -309,7 +309,7 @@ Los originales se conservan en `Assets/` y el navegador consume las versiones op
 npm run optimize:assets
 ```
 
-Revisa `Assets/Generated/README.md` antes de sustituir archivos. El video orbital de runtime es `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`; la copia fuente esta en `Assets/video-orbital.mp4`.
+Revisa `Assets/Generated/README.md` antes de sustituir archivos. El video orbital de runtime es `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`; la copia fuente esta en `Assets/video-orbital.mp4`. El video solo se monta en la composicion cinematografica de escritorio, se limita a su ancho intrinseco de 1280 px y recorre el primer 72% de su duracion. Tablet vertical, movil y `prefers-reduced-motion` usan los WebP estaticos y no descargan ni montan el video.
 
 ## Rubrica inicial
 
@@ -365,6 +365,11 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 |-- docs/                         # Estado verificado y contrato de iteracion archivado
 |-- src/
 |   |-- components/
+|   |-- landing/                 # Landing por escenas, contenido congelado, orbita, countdown y CSS cinematografico
+|   |   |-- scenes/
+|   |   |-- LandingPage.tsx
+|   |   |-- content.ts
+|   |   `-- landing-cinematic.css
 |   |-- lib/
 |   |-- pages/
 |   `-- types/
@@ -382,4 +387,4 @@ No se permite `any` ni `as any`. Toda consulta Supabase debe tener un tipo `Tabl
 - `.agents/skills/landing-maintenance`: mapa y limites de la landing.
 - `.agents/skills/buildathon-operations`: dominio, esquema y flujos operativos.
 - `PRODUCT.md`: direccion visual, tono y accesibilidad.
-- `VIDEO_SCROLL_PLAN.md`: contrato tecnico del video orbital sincronizado con scroll.
+- `VIDEO_SCROLL_PLAN.md`: contrato tecnico vigente del video orbital sincronizado con scroll.

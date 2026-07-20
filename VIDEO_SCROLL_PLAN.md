@@ -2,7 +2,7 @@
 
 ## Estado actual
 
-El hero usa `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`, como plano orbital continuo. La copia fuente editable se conserva en `Assets/video-orbital.mp4`. El video no se reproduce automáticamente: la posición del scroll controla su tiempo para que avanzar y retroceder por la página mueva la cámara en ambos sentidos. Con `prefers-reduced-motion`, el video no se monta y se conserva la imagen estática.
+El hero de `src/landing/scenes/HeroScene.tsx` usa `public/assets/video-orbital.mp4`, servido como `/assets/video-orbital.mp4`, como plano orbital continuo. La copia fuente editable se conserva en `Assets/video-orbital.mp4`. El video no se reproduce automáticamente: `src/landing/useHeroVideoScrub.ts` traduce el progreso local del hero a tiempo para que avanzar y retroceder mueva la cámara en ambos sentidos. Solo se monta bajo `(min-width: 960px) and (min-height: 700px) and (orientation: landscape)` y sin movimiento reducido; el resto de composiciones conserva la imagen WebP estática.
 
 ## Prompt final para generación
 
@@ -18,13 +18,15 @@ El hero usa `public/assets/video-orbital.mp4`, servido como `/assets/video-orbit
 
 ## Integración implementada
 
-1. Una sección de `185svh` contiene un escenario sticky de `100svh` para dar recorrido suficiente al plano de 10 segundos.
-2. El progreso crudo de `useScroll` calcula `targetTime = progress × duration`; el spring queda reservado para la salida del overlay HTML.
+1. Una sección de `160svh` contiene un escenario sticky de `100svh` para dar recorrido suficiente al plano de 10 segundos sin alargar el móvil.
+2. El progreso que llega al scrub es el spring del hero (stiffness 150, damping 32): en scroll rápido el video atraviesa los fotogramas intermedios en vez de saltar de golpe. `targetTime = progress × duration × 0.72`; el 28% final se omite para evitar los fotogramas excesivamente cercanos.
 3. El `<video muted playsInline preload="auto" poster="…">` espera metadata y comprueba el rango `seekable` antes de cada salto.
 4. Los cambios de `currentTime` se agrupan en un único `requestAnimationFrame`, se omiten diferencias menores a `1 / 24` segundos y nunca se busca el último fotograma exacto.
 5. Solo se permite un seek activo. El evento `seeked` procesa el destino más reciente acumulado para evitar saltos residuales.
 6. Un `IntersectionObserver` detiene el planificador fuera de la escena y el cleanup cancela RAF, listeners, observer y suscripción.
-7. El campo WebGL fue retirado del hero; permanece únicamente en la escena final y se carga de forma diferida.
-8. El countdown y los dos CTA permanecen como HTML accesible, centrados y utilizables durante toda la secuencia.
+7. El archivo 1280×720 se renderiza a un máximo de 1280 px de ancho, con `object-fit: contain`, proporción 16:9 y máscara de borde; no se amplía por encima de su resolución intrínseca.
+8. El campo WebGL fue retirado del hero; permanece únicamente en la escena final y su chunk de Three.js solo se solicita cuando la escena se acerca al viewport.
+9. El countdown y los dos CTA permanecen como HTML accesible. Al desvanecerse salen del orden de foco mediante `inert`, sin cortar visualmente la transición.
+10. Tablet vertical, móvil y movimiento reducido son documentos lineales completos: no montan el video, no hacen desplazamientos horizontales y no dependen de máscaras o WebGL para mostrar contenido.
 
-El archivo actual mide 1280 × 720 y 2.7 MB. Funciona bien para esta integración, pero una futura sustitución 4K debería mantener keyframes cada 4–6 fotogramas y `faststart` para mejorar la nitidez y la respuesta de los seeks en pantallas grandes.
+El archivo publicado mide 1280 × 720 y ~6.3 MB: es una recodificación del master (`Assets/video-orbital.mp4`, 2.7 MB) con keyframe cada 4 fotogramas (`-g 4 -keyint_min 4 -sc_threshold 0`), CRF 20 y `faststart`, para que cada seek del scrub resuelva casi instantáneamente. Cualquier sustitución futura debe conservar esa densidad de keyframes. No se escala por encima de su ancho intrínseco; una futura sustitución 4K permitiría ampliar el plano en pantallas grandes.

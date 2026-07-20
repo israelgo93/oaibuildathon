@@ -467,6 +467,34 @@ p {
   will-change: transform, opacity;
 }
 
+.submission-countdown {
+  display: grid;
+  width: 100%;
+  justify-items: center;
+  gap: clamp(14px, 2.4svh, 24px);
+}
+
+.countdown-kicker,
+.countdown-deadline {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(0.66rem, 1vw, 0.78rem);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.countdown-kicker {
+  color: var(--sun);
+}
+
+.countdown-deadline {
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
 .countdown-matrix {
   display: flex;
   align-items: flex-start;
@@ -543,6 +571,10 @@ p {
   font-family: var(--font-display);
   font-size: clamp(1.6rem, 4vw, 3.4rem);
   font-weight: 700;
+}
+
+.submission-countdown-complete {
+  gap: clamp(14px, 2svh, 20px);
 }
 
 .countdown-actions {
@@ -1459,7 +1491,9 @@ p {
 .showcase-links a {
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
   gap: 7px;
+  padding-block: 10px;
   color: var(--ink);
   font-size: 0.75rem;
   font-weight: 750;
@@ -1667,8 +1701,8 @@ p {
 }
 
 .community-venue .community-logo {
-  width: min(100%, 520px);
-  height: clamp(88px, 10vw, 126px);
+  width: min(100%, 680px);
+  height: clamp(120px, 14vw, 172px);
   background: white;
 }
 
@@ -1999,8 +2033,8 @@ p {
   }
 
   .community-venue .community-logo {
-    width: min(100%, 460px);
-    height: 112px;
+    width: min(100%, 560px);
+    height: 138px;
   }
 }
 
@@ -2447,8 +2481,8 @@ p {
   }
 
   .community-venue .community-logo {
-    width: min(100%, 330px);
-    height: 80px;
+    width: min(100%, 380px);
+    height: 96px;
   }
 
   .community-group-label {

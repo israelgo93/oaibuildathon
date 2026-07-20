@@ -5,7 +5,9 @@ import { SystemLayout } from '@/components/system/SystemLayout'
 import { StatusMessage } from '@/components/system/StatusMessage'
 import { ChallengeThemes } from '@/components/system/ChallengeThemes'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
-import { formatEcuadorDateTime, isDeadlineReached } from '@/lib/dates'
+import { SubmissionCountdown } from '@/components/system/SubmissionCountdown'
+import { useCountdown } from '@/hooks/useCountdown'
+import { formatEcuadorDateTime } from '@/lib/dates'
 import { finalSubmissionError } from '@/lib/submission'
 import { mapTechnologySelection, normalizeTechnologyStack, splitCustomTechnologies, TECHNOLOGY_OPTIONS, type TechnologyOption } from '@/lib/technologies'
 import type { SubmissionInput, TeamLoginInput, TeamPortalData } from '@/types/api'
@@ -48,6 +50,7 @@ export function TeamPortalPage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState('')
+  const submissionCountdown = useCountdown(portal?.submissionDeadlineAt ?? '1970-01-01T00:00:00.000Z')
 
   const applyPortal = (data: TeamPortalData) => {
     setPortal(data)
@@ -166,7 +169,7 @@ export function TeamPortalPage() {
     )
   }
 
-  const deadlineReached = isDeadlineReached(portal.submissionDeadlineAt)
+  const deadlineReached = submissionCountdown.isComplete
   const locked = portal.submission.status === 'published' || !portal.event.submissions_open || deadlineReached
   const lockedMessage = portal.submission.status === 'published'
     ? 'El proyecto ya esta publicado en la vitrina.'
@@ -186,6 +189,13 @@ export function TeamPortalPage() {
       {message ? <StatusMessage kind="error">{message}</StatusMessage> : null}
       {success ? <StatusMessage kind="success">{success}</StatusMessage> : null}
       {locked ? <StatusMessage>{lockedMessage}</StatusMessage> : null}
+      {portal.submission.status !== 'published' ? (
+        <SubmissionCountdown
+          countdown={submissionCountdown}
+          deadline={portal.submissionDeadlineAt}
+          isOpen={portal.event.submissions_open}
+        />
+      ) : null}
       <div className="portal-grid">
         <aside className="portal-sidebar">
           <section className="system-card compact-card">
