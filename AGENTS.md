@@ -96,13 +96,14 @@ const team = teamRaw as Tables<'teams'>
 
 ## Estado actual que no debe sobreestimarse
 
-- Las superficies publicas y de jurado/mentor seleccionan el evento mas reciente por `starts_at`. El panel administrativo local incluye selector de evento, creacion de eventos (accion `create_event` con copia opcional de rubrica) y asignacion aleatoria de jurados/mentores por evento; ese alcance multi-evento esta verificado localmente y requiere despliegue para existir en produccion.
-- Supabase produccion contiene dos eventos: Manta (15 de julio, cerrado, vitrina y resultados activos) y Portoviejo (`openai-build-week-portoviejo-2026`, 21 de julio, creado con la rubrica copiada y todos los interruptores apagados, incluida la vitrina, para no ocultar la vitrina de Manta mientras el codigo desplegado siga eligiendo un solo evento).
+- Las superficies publicas y de jurado/mentor seleccionan el evento mas reciente por `starts_at`. El panel administrativo desplegado incluye selector de evento, creacion de eventos (accion `create_event` con copia opcional de rubrica) y asignacion aleatoria de jurados/mentores por evento. La vitrina publica agrega todos los eventos con vitrina habilitada agrupados por edicion.
+- Supabase produccion contiene dos eventos: Manta (15 de julio, cerrado, vitrina y resultados activos) y Portoviejo (`openai-build-week-portoviejo-2026`, 21 de julio, creado con la rubrica copiada y todos los interruptores apagados; hay que crear sus retos y abrir el registro desde el panel antes del evento).
+- El deployment vigente verificado es `dpl_FbbFjdiZXdFB2G8gG6Dve3Q8DnRc` (`READY`, 20 de julio) en `https://oaibuildathon.vercel.app`; `public-config` sirve Portoviejo y `showcase` conserva los tres proyectos publicados de Manta.
 - Supabase produccion aplica doce migraciones locales, incluida `20260715051406_add_submission_ai_analysis.sql`; el historial remoto esta reconciliado.
 - La aplicacion de produccion expone ejes tematicos y temas sugeridos en la configuracion publica, registro, portal del equipo y mentoria. Registro y portal fueron verificados con navegador; el formulario administrativo desplegado y su proteccion se verificaron, pero esta comprobacion no repitio un guardado autenticado por falta de una sesion disponible.
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.
 - Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
-- Produccion incorpora correo de acceso, recuperacion de contrasena y difusion. El deployment vigente verificado `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` esta `READY` en `https://oaibuildathon.vercel.app`, con 12 Functions y build limpio. Conserva 13 perfiles, 1 equipo y 1 entrega final, con cero campanas y cero solicitudes de recuperacion; nunca ejecutar acciones masivas como parte de una prueba.
+- Produccion incorpora correo de acceso, recuperacion de contrasena y difusion; nunca ejecutar acciones masivas como parte de una prueba.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 - Produccion incorpora analisis IA con OpenAI Agents SDK, panel lateral para administracion/jurado y recuperacion durable. `OPENAI_API_KEY` y `CRON_SECRET` estan configuradas como Sensitive; el worker autorizado proceso una entrega que termino `completed` con `gpt-5.5`, cuatro especialistas y resultados estructurados persistidos. No se repitio visualmente el panel desplegado por falta de una sesion autenticada disponible.
 

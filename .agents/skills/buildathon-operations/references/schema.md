@@ -4,7 +4,7 @@ This reference describes the deployed schema and application verified through 20
 
 ## Core entities
 
-- `events`: schedule, global stage switches, public-visibility flags, and configurable team limits. The database hard cap is three. Public, judge, and mentor surfaces choose the most recent event by `starts_at`; the admin UI (local scope) creates events and scopes every section to a selected event. Production holds two events: Manta (July 15, closed, showcase/results on) and Portoviejo (July 21, all switches off including showcase until the multi-event code deploys). Participant emails are unique per event, so the same person can join a different event.
+- `events`: schedule, global stage switches, public-visibility flags, and configurable team limits. The database hard cap is three. Public, judge, and mentor surfaces choose the most recent event by `starts_at`; the deployed admin UI creates events and scopes every section to a selected event. Production holds two events: Manta (July 15, closed, showcase/results on) and Portoviejo (July 21, all switches off until the organization opens them). Participant emails are unique per event, so the same person can join a different event.
 - `challenges`: active event challenges, requirements, ordering, optional capacity, `submission_deadline_at`, `thematic_axes`, and `suggested_topics`.
 - `teams`: one global registration, primary contact, status, recovery code, and HMAC token hash.
 - `team_members`: one to three builders; email is unique within an event; exactly one member is the primary contact.

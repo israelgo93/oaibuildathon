@@ -4,7 +4,7 @@ Ultima verificacion tecnica: 20 de julio de 2026.
 
 Este documento separa el comportamiento desplegado, sus limitaciones verificadas y el contrato de iteracion ya archivado. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
 
-## Soporte multi-evento verificado localmente
+## Soporte multi-evento desplegado
 
 La plataforma quedo preparada para operar mas de un evento sin cambios de esquema, porque todas las tablas de negocio ya discriminan por `event_id` y los correos de participantes son unicos por evento (una misma persona puede registrarse en otra edicion).
 
@@ -17,29 +17,29 @@ La plataforma quedo preparada para operar mas de un evento sin cambios de esquem
 
 Supabase produccion contiene el evento `openai-build-week-portoviejo-2026` (21 de julio de 2026, 10:00 a 17:00 America/Guayaquil, cierre de entregas 16:00) con los cinco criterios de la rubrica copiados desde Manta y todos los interruptores apagados, incluida la vitrina, para que el codigo desplegado actual siga mostrando la vitrina de Manta. Antes de abrir el registro de Portoviejo hay que crear sus retos y activar los interruptores desde el panel.
 
-La verificacion local termino con TypeScript estricto, 146 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y build de produccion limpio. Este alcance multi-evento **no se declara desplegado**: requiere publicar el codigo en Vercel.
+La verificacion local termino con TypeScript estricto, 146 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y build de produccion limpio. El alcance esta desplegado en el deployment `dpl_FbbFjdiZXdFB2G8gG6Dve3Q8DnRc` (`READY`, 20 de julio de 2026, build limpio) en `https://oaibuildathon.vercel.app`. Verificado en produccion: `public-config` sirve Portoviejo con registro cerrado, `showcase` devuelve los tres proyectos publicados de Manta con nombre de evento, la landing responde 200 y el poster `portoviejo-poster-1200.webp` esta publicado (el de Manta ya no existe).
 
 ## Falla operativa del analisis IA del 15 de julio (diagnostico)
 
-Los analisis que quedaron "en cola" durante el evento no se perdieron: los reintentos transitorios se reprogramaban a +5 minutos, pero ningun proceso trabajaba la cola durante el dia; el unico recuperador era el cron diario de las 03:00 UTC con capacidad 2 por corrida. La evidencia en produccion muestra filas creadas el 15 de julio completadas los dias 16, 17 y 19 a las 03:42 UTC. Ademas, volver a borrador y reenviar invalido revisiones (`superseded`, 23 filas) y agoto la cuota de cinco revisiones automaticas en dos entregas (`revision_quota_exceeded`), que siguen disponibles solo mediante reintento manual de administracion. Las correcciones (reintentos cortos encadenados y drenaje manual autorizado) estan implementadas y verificadas localmente.
+Los analisis que quedaron "en cola" durante el evento no se perdieron: los reintentos transitorios se reprogramaban a +5 minutos, pero ningun proceso trabajaba la cola durante el dia; el unico recuperador era el cron diario de las 03:00 UTC con capacidad 2 por corrida. La evidencia en produccion muestra filas creadas el 15 de julio completadas los dias 16, 17 y 19 a las 03:42 UTC. Ademas, volver a borrador y reenviar invalido revisiones (`superseded`, 23 filas) y agoto la cuota de cinco revisiones automaticas en dos entregas (`revision_quota_exceeded`), que siguen disponibles solo mediante reintento manual de administracion. Las correcciones (reintentos cortos encadenados y drenaje manual autorizado) estan desplegadas con el resto del alcance multi-evento.
 
-## Countdown de entregas verificado localmente
+## Countdown de entregas desplegado
 
 La landing y el portal del equipo incorporan una cuenta regresiva en dias, horas, minutos y segundos hasta el cierre efectivo de entregas. La landing consulta `/api/public-config` y usa el primer corte entre el deadline global y los deadlines de los retos; el portal usa `submissionDeadlineAt`, que ya representa el menor corte para el reto elegido. Al llegar exactamente a cero, el portal vuelve a renderizarse, bloquea los campos y deja de ofrecer las acciones de borrador o envio; el servidor conserva la autoridad final sobre el cierre.
 
 La configuracion de produccion consultada el 15 de julio de 2026 mantiene las entregas abiertas y fija todos los retos y el corte global en `2026-07-15T20:45:00+00:00`, equivalente a las 15:45 de `America/Guayaquil (UTC-5)`. A las 13:12 faltaban 2 horas y 32 minutos, no cuatro horas: las 18:00 corresponden al final del evento, no al cierre de entregas.
 
-El cambio se verifico localmente con TypeScript estricto, pruebas de borde antes/en/despues del deadline y navegador en 1440x1000 y 390x844. La landing y el portal no presentaron errores ni warnings de consola. Este countdown aun no se declara desplegado; requiere publicar el cambio para que aparezca en `https://oaibuildathon.vercel.app`.
+El cambio se verifico localmente con TypeScript estricto, pruebas de borde antes/en/despues del deadline y navegador en 1440x1000 y 390x844. La landing y el portal no presentaron errores ni warnings de consola. El countdown quedo incluido en el deployment vigente `dpl_FbbFjdiZXdFB2G8gG6Dve3Q8DnRc`.
 
-## Landing cinematografica por escenas verificada localmente
+## Landing cinematografica por escenas desplegada
 
-La landing local se separo en escenas mantenibles bajo `src/landing/` sin cambiar React/Vite, las rutas operativas, el contenido oficial ni los assets publicados. Una orbita/horizonte persistente conecta hero, Manta, contexto global, Sol/Terra/Luna, agenda, premios y cierre lunar. Fechas, enlaces, agenda, modelos, premios, takeaways y comunidades se centralizan en `src/landing/content.ts` y quedan protegidos por pruebas de regresion. El countdown conserva `/api/public-config`, el menor deadline global/por reto, el fallback vigente y los estados abierto/cerrado.
+La landing se separo en escenas mantenibles bajo `src/landing/` sin cambiar React/Vite, las rutas operativas, el contenido oficial ni los assets publicados. Una orbita/horizonte persistente conecta hero, Manta, contexto global, Sol/Terra/Luna, agenda, premios y cierre lunar. Fechas, enlaces, agenda, modelos, premios, takeaways y comunidades se centralizan en `src/landing/content.ts` y quedan protegidos por pruebas de regresion. El countdown conserva `/api/public-config`, el menor deadline global/por reto, el fallback vigente y los estados abierto/cerrado.
 
 La coreografia sticky y el video existen solo en escritorio horizontal desde 960x700. El video 1280x720 se renderiza como maximo a su ancho intrinseco, usa el primer 72% de su duracion y responde al scroll en ambos sentidos. Tablet vertical y movil usan una lectura lineal mas corta, sin video ni desplazamientos horizontales. `prefers-reduced-motion` activa el documento lineal completo a cualquier ancho, sin sticky, video, contenido superpuesto ni WebGL. Three.js permanece aislado en la escena final y su chunk se solicita solo cuando esa escena se acerca al viewport.
 
 La verificacion de navegador cubrio 1440x1000, 1280x800, 1024x768, 960x700, 768x1024, 430x932, 390x844 y 360x800. En todos los casos el ancho del documento coincidio con el viewport; 768 vertical y los tres anchos de telefono no montaron video. En 960x700 se comprobaron completas la primera y ultima fila de agenda. Tambien se verificaron el scrub bidireccional, foco visible, skip link con destino enfocable, enlaces y anclas validos, controles desvanecidos fuera del orden de foco, countdown abierto/cerrado, vitrina vacia sin espacio residual y vitrinas ficticias de uno y seis proyectos sin desalinear la orbita ni el cierre. La compilacion servida localmente no produjo errores ni warnings de aplicacion en consola.
 
-La bateria local termino con TypeScript estricto, 145 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos limpios. Esta arquitectura cinematografica y el countdown asociado **no se declaran desplegados**; `https://oaibuildathon.vercel.app` sigue descrito exclusivamente por las secciones de produccion verificadas de este documento.
+La bateria local termino con TypeScript estricto, 145 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos limpios. Esta arquitectura cinematografica y el countdown asociado estan incluidos en el deployment vigente `dpl_FbbFjdiZXdFB2G8gG6Dve3Q8DnRc` junto con el poster de Portoviejo.
 
 ## Analisis IA desplegado y verificado
 
@@ -51,7 +51,7 @@ La migracion aplicada `20260715051406_add_submission_ai_analysis.sql` agrega `su
 
 El envio final identico mientras la entrega ya esta `submitted` preserva `submitted_at` durante una ventana de 30 segundos para absorber dobles clics. Despues puede crear una revision aun con las mismas URLs, al igual que un reenvio posterior a borrador, porque el contenido externo puede haber cambiado. El servidor verifica un hash canonico de contenido antes de persistir resultados, limita a cinco las revisiones automaticas por entrega y reutiliza un unico marcador de cuota para no crear filas ilimitadas; administracion conserva el override manual auditado.
 
-La validacion local termino con TypeScript estricto, 137 pruebas, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos correctos. Supabase confirma doce migraciones remotas. `OPENAI_API_KEY` y `CRON_SECRET` existen como variables Sensitive de Vercel Production; `CRON_SECRET` fue rotado y su autorizacion se comprobo sin exponer el valor. El deployment funcional `dpl_4k1SZpDECsRSLqrDDEAFX8AJkwgP` esta `READY`, sirve `https://oaibuildathon.vercel.app`, conserva exactamente 12 Functions y termino con build limpio.
+La validacion local termino con TypeScript estricto, 137 pruebas, `npm audit` sin vulnerabilidades y dos builds de produccion consecutivos correctos. Supabase confirma doce migraciones remotas. `OPENAI_API_KEY` y `CRON_SECRET` existen como variables Sensitive de Vercel Production; `CRON_SECRET` fue rotado y su autorizacion se comprobo sin exponer el valor. El deployment vigente `dpl_FbbFjdiZXdFB2G8gG6Dve3Q8DnRc` esta `READY`, sirve `https://oaibuildathon.vercel.app`, conserva exactamente 12 Functions y termino con build limpio.
 
 Una invocacion autorizada de `/api/admin/analysis-worker` proceso una entrega con capacidad de lote 2. La fila termino `completed` con modelo `gpt-5.5`, cuatro reportes especialistas, informe final, resumen de evidencia, ponderacion sugerida y confianza persistidos. La evidencia contiene 11 elementos `verified` y uno `partial`; no aparecieron errores de runtime. La comprobacion conservo 13 perfiles, 1 equipo y 1 entrega final, con cero campanas y cero solicitudes de recuperacion, sin efectos colaterales sobre acceso o comunicaciones. No hubo una sesion autenticada disponible para repetir visualmente el panel lateral como administrador o jurado; esa comprobacion visual desplegada permanece como limitacion honesta, aunque los contratos, guards y pruebas automatizadas siguen vigentes.
 
@@ -114,11 +114,11 @@ Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FR
 | Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie, codigo de recuperacion y confirmacion por correo | Un fallo de correo no invalida ni duplica el registro |
 | Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
 | Retos | Implementado | Titulo, enfoque, requisitos, estado, cupo opcional, deadline propio, ejes tematicos y temas sugeridos editables | La UI administra retos del evento existente mas reciente |
-| Administracion | Implementado con alcance acotado | Selector de evento, creacion de eventos con copia de rubrica, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones manuales y aleatorias, entregas y ranking privado por evento | El alcance multi-evento esta verificado localmente y pendiente de despliegue; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
+| Administracion | Implementado | Selector de evento, creacion de eventos con copia de rubrica, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones manuales y aleatorias, entregas y ranking privado por evento | El panel desplegado no se volvio a recorrer con sesion autenticada tras el deploy; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
 | Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
 | Analisis IA para jurado | Desplegado y verificado en backend | Panel lateral para admin y jurado asignado, evidencia acotada, cuatro especialistas, sintesis y ponderacion sugerida no vinculante | Worker y persistencia verificados en produccion; el ultimo despliegue no se recorrio visualmente con una sesion autenticada de admin/jurado |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
-| Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | En produccion usa el evento mas reciente con vitrina habilitada; el codigo local agrega todos los eventos con vitrina habilitada agrupados por edicion |
+| Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Agrega todos los eventos con vitrina habilitada agrupados por edicion; verificado en produccion con los tres proyectos de Manta |
 | Resultados publicos | No implementado | Existe el campo `results_public` y ranking privado en administracion | No hay endpoint ni vista publica de resultados |
 | Correo transaccional | Implementado | SDK Resend, remitente verificado, HTML/texto, outbox transaccional, idempotencia, reintentos y accion administrativa | No existe webhook de entrega, rebote o queja; `sent` representa aceptacion del proveedor |
 
@@ -152,7 +152,7 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 - Registro y calificacion usan banderas y ventanas del evento.
 - `PATCH /api/team` hace cumplir el cierre efectivo en servidor: el menor entre `events.submissions_close_at` y `challenges.submission_deadline_at`.
 - Las fechas se guardan en UTC y se muestran en `America/Guayaquil (UTC-5)`.
-- La configuracion publica, jurado y mentor operan sobre el evento mas reciente por `starts_at`. El panel local permite crear eventos y trabajar sobre el evento seleccionado; la vitrina local agrega todos los eventos con vitrina habilitada.
+- La configuracion publica, jurado y mentor operan sobre el evento mas reciente por `starts_at`. El panel desplegado permite crear eventos y trabajar sobre el evento seleccionado; la vitrina agrega todos los eventos con vitrina habilitada.
 
 ## API desplegada
 
