@@ -426,6 +426,10 @@
 .status-not_sent { background: oklch(0.93 0.02 250); color: oklch(0.44 0.04 250); }
 .status-failed { background: oklch(0.93 0.07 25); color: oklch(0.46 0.16 25); }
 .staff-bulk-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.admin-event-picker { margin-bottom: 16px; }
+.admin-event-picker label { display: grid; gap: 6px; max-width: 460px; color: oklch(0.46 0.025 250); font-size: 0.72rem; font-weight: 750; }
+.admin-event-picker select { min-height: 42px; padding: 8px 12px; border: 1px solid oklch(0.84 0.02 250); border-radius: 10px; background: white; font: inherit; font-size: 0.82rem; }
+.system-help-text { margin: 0; color: oklch(0.5 0.025 250); font-size: 0.72rem; line-height: 1.55; }
 
 @media (max-width: 960px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }

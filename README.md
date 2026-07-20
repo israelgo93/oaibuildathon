@@ -59,7 +59,7 @@ La comprobacion real autorizada del worker proceso una entrega con capacidad de 
 
 ## Limites actuales de produccion
 
-- El panel modifica el evento mas reciente, pero no crea eventos.
+- El panel incluye un selector de evento, permite crear eventos nuevos (con copia opcional de la rubrica activa) y filtra equipos, retos, entregas, asignaciones, difusion y resultados por el evento seleccionado.
 - La UI no desactiva ni elimina usuarios; la notificacion de acceso rota la clave solo despues de una confirmacion administrativa.
 - El campo `results_public` existe, pero no hay una vista ni un endpoint publico de resultados.
 - El registro manual que reutiliza `/api/registrations` todavia no crea una entrada propia de auditoria administrativa.

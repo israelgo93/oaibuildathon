@@ -146,7 +146,7 @@ export function RegisterPage() {
             <div className="form-grid">
               <label><RequiredFieldLabel>Nombre del equipo</RequiredFieldLabel><input name="teamName" required maxLength={80} /></label>
               <label><OptionalFieldLabel>Organizacion o comunidad</OptionalFieldLabel><input name="organization" maxLength={120} /></label>
-              <label><RequiredFieldLabel>Ciudad base</RequiredFieldLabel><input name="teamCity" required maxLength={80} defaultValue="Manta" /></label>
+              <label><RequiredFieldLabel>Ciudad base</RequiredFieldLabel><input name="teamCity" required maxLength={80} defaultValue={config.event.location.split(',')[0]?.trim() ?? ''} /></label>
             </div>
             <label className="honeypot" aria-hidden="true">Sitio web<input name="website" tabIndex={-1} autoComplete="off" /></label>
           </section>

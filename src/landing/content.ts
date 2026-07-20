@@ -28,7 +28,7 @@ export const LANDING_ASSETS = {
     video: '/assets/video-orbital.mp4',
   },
   deepSpace: '/assets/deep-space-1600.webp',
-  poster: '/assets/manta-poster-1200.webp',
+  poster: '/assets/portoviejo-poster-1200.webp',
   globalOrbit: {
     small: '/assets/global-orbit-1280.webp',
     medium: '/assets/global-orbit-2560.webp',

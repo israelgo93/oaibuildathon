@@ -96,7 +96,8 @@ const team = teamRaw as Tables<'teams'>
 
 ## Estado actual que no debe sobreestimarse
 
-- Las superficies operativas seleccionan el evento mas reciente; el panel no crea eventos.
+- Las superficies publicas y de jurado/mentor seleccionan el evento mas reciente por `starts_at`. El panel administrativo local incluye selector de evento, creacion de eventos (accion `create_event` con copia opcional de rubrica) y asignacion aleatoria de jurados/mentores por evento; ese alcance multi-evento esta verificado localmente y requiere despliegue para existir en produccion.
+- Supabase produccion contiene dos eventos: Manta (15 de julio, cerrado, vitrina y resultados activos) y Portoviejo (`openai-build-week-portoviejo-2026`, 21 de julio, creado con la rubrica copiada y todos los interruptores apagados, incluida la vitrina, para no ocultar la vitrina de Manta mientras el codigo desplegado siga eligiendo un solo evento).
 - Supabase produccion aplica doce migraciones locales, incluida `20260715051406_add_submission_ai_analysis.sql`; el historial remoto esta reconciliado.
 - La aplicacion de produccion expone ejes tematicos y temas sugeridos en la configuracion publica, registro, portal del equipo y mentoria. Registro y portal fueron verificados con navegador; el formulario administrativo desplegado y su proteccion se verificaron, pero esta comprobacion no repitio un guardado autenticado por falta de una sesion disponible.
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.

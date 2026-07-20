@@ -7,7 +7,7 @@ const adminPage = readFileSync(join(process.cwd(), 'src', 'pages', 'AdminPage.ts
 describe('eventos de formularios administrativos', () => {
   it('conserva el formulario antes de esperar operaciones asincronas', () => {
     expect(adminPage).not.toMatch(/currentTarget\.reset\(\)/)
-    expect(adminPage.match(/const formElement = \w+\.currentTarget/g)).toHaveLength(5)
-    expect(adminPage.match(/formElement\.reset\(\)/g)).toHaveLength(5)
+    expect(adminPage.match(/const formElement = \w+\.currentTarget/g)).toHaveLength(6)
+    expect(adminPage.match(/formElement\.reset\(\)/g)).toHaveLength(6)
   })
 })

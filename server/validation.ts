@@ -141,6 +141,18 @@ export const evaluationSchema = z.object({
 
 export const adminActionSchema = z.discriminatedUnion('action', [
   z.object({
+    action: z.literal('create_event'),
+    name: requiredText('El nombre del evento', 160),
+    tagline: z.string().trim().max(240),
+    location: z.string().trim().max(160),
+    startsAt: z.string().datetime({ offset: true }),
+    endsAt: z.string().datetime({ offset: true }),
+    submissionsCloseAt: z.string().datetime({ offset: true }).nullable(),
+    minTeamSize: z.number().int().min(1).max(3),
+    maxTeamSize: z.number().int().min(1).max(3),
+    copyCriteriaFromEventId: z.string().uuid().nullable(),
+  }),
+  z.object({
     action: z.literal('update_event'),
     eventId: z.string().uuid(),
     values: z.object({
@@ -172,6 +184,8 @@ export const adminActionSchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('add_member'), teamId: z.string().uuid(), eventId: z.string().uuid(), fullName: requiredText('El nombre', 120), email: z.string().email().max(254), phone: z.string().trim().min(7).max(30), city: requiredText('La ciudad', 80), memberRole: z.string().trim().max(80) }),
   z.object({ action: z.literal('assign_judge'), eventId: z.string().uuid(), judgeId: z.string().uuid(), teamId: z.string().uuid() }),
   z.object({ action: z.literal('assign_mentor'), eventId: z.string().uuid(), mentorId: z.string().uuid(), teamId: z.string().uuid(), notes: z.string().trim().max(2000) }),
+  z.object({ action: z.literal('randomize_judge_assignments'), eventId: z.string().uuid() }),
+  z.object({ action: z.literal('randomize_mentor_assignments'), eventId: z.string().uuid() }),
   z.object({ action: z.literal('remove_judge_assignment'), assignmentId: z.string().uuid() }),
   z.object({ action: z.literal('remove_mentor_assignment'), assignmentId: z.string().uuid() }),
   z.object({ action: z.literal('retry_registration_email'), outboxId: z.string().uuid() }),

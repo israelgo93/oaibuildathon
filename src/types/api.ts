@@ -98,6 +98,8 @@ export interface SubmissionInput {
 
 export interface ShowcaseProject {
   id: string
+  eventId: string
+  eventName: string
   teamName: string
   projectName: string
   shortDescription: string
@@ -242,6 +244,7 @@ export interface MentorDashboardData {
 }
 
 export type AdminAction =
+  | { action: 'create_event'; name: string; tagline: string; location: string; startsAt: string; endsAt: string; submissionsCloseAt: string | null; minTeamSize: number; maxTeamSize: number; copyCriteriaFromEventId: string | null }
   | { action: 'update_event'; eventId: string; values: Partial<Pick<Tables<'events'>, 'name' | 'tagline' | 'location' | 'starts_at' | 'ends_at' | 'registration_opens_at' | 'registration_closes_at' | 'submissions_close_at' | 'scoring_opens_at' | 'scoring_closes_at' | 'registration_open' | 'submissions_open' | 'scoring_open' | 'results_public' | 'showcase_enabled' | 'min_team_size' | 'max_team_size'>> }
   | { action: 'create_challenge'; eventId: string; title: string; description: string; thematicAxes: string[]; suggestedTopics: string[]; requirements: string; maxTeams: number | null; submissionDeadlineAt: string }
   | { action: 'update_challenge'; challengeId: string; title: string; description: string; thematicAxes: string[]; suggestedTopics: string[]; requirements: string; active: boolean; maxTeams: number | null; submissionDeadlineAt: string }
@@ -252,6 +255,8 @@ export type AdminAction =
   | { action: 'add_member'; teamId: string; eventId: string; fullName: string; email: string; phone: string; city: string; memberRole: string }
   | { action: 'assign_judge'; eventId: string; judgeId: string; teamId: string }
   | { action: 'assign_mentor'; eventId: string; mentorId: string; teamId: string; notes: string }
+  | { action: 'randomize_judge_assignments'; eventId: string }
+  | { action: 'randomize_mentor_assignments'; eventId: string }
   | { action: 'remove_judge_assignment'; assignmentId: string }
   | { action: 'remove_mentor_assignment'; assignmentId: string }
   | { action: 'retry_registration_email'; outboxId: string }
@@ -330,6 +335,11 @@ export interface RetryBroadcastResult {
   eligibleCount: number
   status: 'scheduled'
   resumeKind: BroadcastResumeKind
+}
+
+export interface AnalysisWorkerRunResult {
+  processed: number
+  capacity: number
 }
 
 export interface ApiErrorBody {

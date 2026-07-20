@@ -6,26 +6,25 @@ import { getServerSupabase } from '../server/supabase.js'
 export default withErrorHandling(async (request, response) => {
   requireMethod(request, ['GET'])
   const supabase = getServerSupabase()
-  const { data: eventRaw, error: eventError } = await supabase
+  const { data: eventsRaw, error: eventsError } = await supabase
     .from('events')
     .select('*')
     .eq('showcase_enabled', true)
     .order('starts_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
 
-  if (eventError) throw new HttpError(500, 'No fue posible consultar la vitrina')
-  if (!eventRaw) {
+  if (eventsError) throw new HttpError(500, 'No fue posible consultar la vitrina')
+  const events: Tables<'events'>[] = eventsRaw ?? []
+  if (events.length === 0) {
     setPublicCache(response, 30)
     response.status(200).json([] satisfies ShowcaseProject[])
     return
   }
 
-  const event = eventRaw as Tables<'events'>
+  const eventIds = events.map((event) => event.id)
   const { data: submissionsRaw, error: submissionsError } = await supabase
     .from('project_submissions')
     .select('*')
-    .eq('event_id', event.id)
+    .in('event_id', eventIds)
     .eq('status', 'published')
     .order('published_at', { ascending: false })
 
@@ -55,27 +54,34 @@ export default withErrorHandling(async (request, response) => {
 
   if (challengesError) throw new HttpError(500, 'No fue posible completar la vitrina')
   const challenges: Tables<'challenges'>[] = challengesRaw ?? []
+  const eventById = new Map(events.map((event) => [event.id, event]))
   const teamById = new Map(teams.map((team) => [team.id, team]))
   const teamChallengeByTeam = new Map(teamChallenges.map((item) => [item.team_id, item]))
   const challengeById = new Map(challenges.map((challenge) => [challenge.id, challenge]))
-  const projects: ShowcaseProject[] = submissions.flatMap((submission) => {
-    const team = teamById.get(submission.team_id)
-    const teamChallenge = teamChallengeByTeam.get(submission.team_id)
-    const challenge = teamChallenge ? challengeById.get(teamChallenge.challenge_id) : undefined
+  const eventOrder = new Map(events.map((event, index) => [event.id, index]))
+  const projects: ShowcaseProject[] = submissions
+    .flatMap((submission) => {
+      const event = eventById.get(submission.event_id)
+      const team = teamById.get(submission.team_id)
+      const teamChallenge = teamChallengeByTeam.get(submission.team_id)
+      const challenge = teamChallenge ? challengeById.get(teamChallenge.challenge_id) : undefined
 
-    if (!team || !challenge) return []
-    return [{
-      id: submission.id,
-      teamName: team.name,
-      projectName: submission.project_name,
-      shortDescription: submission.short_description,
-      challengeTitle: challenge.title,
-      techStack: submission.tech_stack,
-      demoUrl: submission.demo_url,
-      repositoryUrl: submission.repository_url,
-      publishedAt: submission.published_at,
-    }]
-  })
+      if (!event || !team || !challenge) return []
+      return [{
+        id: submission.id,
+        eventId: event.id,
+        eventName: event.name,
+        teamName: team.name,
+        projectName: submission.project_name,
+        shortDescription: submission.short_description,
+        challengeTitle: challenge.title,
+        techStack: submission.tech_stack,
+        demoUrl: submission.demo_url,
+        repositoryUrl: submission.repository_url,
+        publishedAt: submission.published_at,
+      }]
+    })
+    .sort((left, right) => (eventOrder.get(left.eventId) ?? 0) - (eventOrder.get(right.eventId) ?? 0))
 
   setPublicCache(response, 30)
   response.status(200).json(projects)

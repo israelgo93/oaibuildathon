@@ -6,6 +6,7 @@ import { requireRole } from '../../server/auth.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../../server/http.js'
 import { getServerSupabase } from '../../server/supabase.js'
 import { adminActionSchema, submissionSchema } from '../../server/validation.js'
+import { planRandomAssignments } from '../../server/assignment-distribution.js'
 import { safelyProcessRegistrationEmailForTeam } from '../../server/registration-email.js'
 import { scheduleSubmissionAnalysisForSubmission } from '../../server/submission-analysis-service.js'
 import { isSubmissionResubmitCooldownActive } from '../../server/submission-analysis-fingerprint.js'
@@ -20,6 +21,49 @@ async function requireStaffRole(profileId: string, role: 'judge' | 'mentor'): Pr
   if (error || !profileRaw) throw new HttpError(404, 'El perfil no existe')
   const profile = profileRaw as Tables<'profiles'>
   if (!profile.active || profile.role !== role) throw new HttpError(400, `El perfil no es un ${role} activo`)
+}
+
+function eventSlugFromName(name: string): string {
+  const normalized = name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return normalized || 'evento'
+}
+
+const ASSIGNABLE_TEAM_STATUSES: Tables<'teams'>['status'][] = ['registered', 'active']
+
+async function loadRandomAssignmentContext(
+  eventId: string,
+  role: 'judge' | 'mentor',
+): Promise<{ staffIds: string[]; pendingTeamIds: string[] }> {
+  const supabase = getServerSupabase()
+  const assignmentsTable = role === 'judge' ? 'judge_assignments' : 'mentor_assignments'
+  const [profilesResult, teamsResult, assignmentsResult] = await Promise.all([
+    supabase.from('profiles').select('*').eq('role', role).eq('active', true),
+    supabase.from('teams').select('*').eq('event_id', eventId),
+    supabase.from(assignmentsTable).select('*').eq('event_id', eventId),
+  ])
+  if (profilesResult.error || teamsResult.error || assignmentsResult.error) {
+    throw new HttpError(500, 'No fue posible preparar la asignacion aleatoria')
+  }
+  const profiles: Tables<'profiles'>[] = profilesResult.data ?? []
+  const teams: Tables<'teams'>[] = teamsResult.data ?? []
+  const assignments: (Tables<'judge_assignments'> | Tables<'mentor_assignments'>)[] = assignmentsResult.data ?? []
+  const assignedTeamIds = new Set(assignments.map((assignment) => assignment.team_id))
+  const pendingTeamIds = teams
+    .filter((team) => ASSIGNABLE_TEAM_STATUSES.includes(team.status) && !assignedTeamIds.has(team.id))
+    .map((team) => team.id)
+
+  if (profiles.length === 0) {
+    throw new HttpError(409, role === 'judge' ? 'No hay jurados activos para asignar' : 'No hay mentores activos para asignar')
+  }
+  if (pendingTeamIds.length === 0) {
+    throw new HttpError(409, 'Todos los equipos elegibles de este evento ya tienen una asignacion')
+  }
+  return { staffIds: profiles.map((profile) => profile.id), pendingTeamIds }
 }
 
 async function requireTeamEvent(teamId: string, eventId: string): Promise<void> {
@@ -117,6 +161,63 @@ export default withErrorHandling(async (request, response) => {
   let auditMetadata: Json = {}
 
   switch (input.action) {
+    case 'create_event': {
+      if (input.minTeamSize > input.maxTeamSize) {
+        throw new HttpError(400, 'El minimo del equipo no puede superar el maximo')
+      }
+      if (new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) {
+        throw new HttpError(400, 'El fin del evento debe ser posterior al inicio')
+      }
+      const baseSlug = eventSlugFromName(input.name)
+      const values: TablesInsert<'events'> = {
+        slug: `${baseSlug}-${Date.now().toString(36)}`,
+        name: input.name,
+        tagline: input.tagline,
+        location: input.location,
+        starts_at: input.startsAt,
+        ends_at: input.endsAt,
+        submissions_close_at: input.submissionsCloseAt,
+        registration_open: false,
+        submissions_open: false,
+        scoring_open: false,
+        results_public: false,
+        showcase_enabled: false,
+        min_team_size: input.minTeamSize,
+        max_team_size: input.maxTeamSize,
+      }
+      const { data: eventRaw, error } = await supabase.from('events').insert(values).select('*').single()
+      if (error || !eventRaw) throw new HttpError(400, 'No fue posible crear el evento')
+      const createdEvent = eventRaw as Tables<'events'>
+
+      let copiedCriteria = 0
+      if (input.copyCriteriaFromEventId) {
+        const { data: criteriaRaw, error: criteriaError } = await supabase
+          .from('evaluation_criteria')
+          .select('*')
+          .eq('event_id', input.copyCriteriaFromEventId)
+          .eq('active', true)
+          .order('sort_order')
+        if (criteriaError) throw new HttpError(500, 'No fue posible leer la rubrica a copiar')
+        const sourceCriteria: Tables<'evaluation_criteria'>[] = criteriaRaw ?? []
+        if (sourceCriteria.length > 0) {
+          const copies: TablesInsert<'evaluation_criteria'>[] = sourceCriteria.map((criterion) => ({
+            event_id: createdEvent.id,
+            name: criterion.name,
+            description: criterion.description,
+            max_score: criterion.max_score,
+            weight: criterion.weight,
+            sort_order: criterion.sort_order,
+          }))
+          const { error: copyError } = await supabase.from('evaluation_criteria').insert(copies)
+          if (copyError) throw new HttpError(500, 'El evento se creo, pero no fue posible copiar la rubrica')
+          copiedCriteria = copies.length
+        }
+      }
+      auditEntityType = 'event'
+      auditEntityId = createdEvent.id
+      auditMetadata = { slug: createdEvent.slug, copied_criteria: copiedCriteria }
+      break
+    }
     case 'update_event': {
       const values: TablesUpdate<'events'> = input.values
       if (values.min_team_size && values.max_team_size && values.min_team_size > values.max_team_size) {
@@ -277,6 +378,37 @@ export default withErrorHandling(async (request, response) => {
       const assignment = assignmentRaw as Tables<'mentor_assignments'>
       auditEntityType = 'mentor_assignment'
       auditEntityId = assignment.id
+      break
+    }
+    case 'randomize_judge_assignments': {
+      const { staffIds, pendingTeamIds } = await loadRandomAssignmentContext(input.eventId, 'judge')
+      const plan = planRandomAssignments(staffIds, pendingTeamIds)
+      const values: TablesInsert<'judge_assignments'>[] = plan.map((item) => ({
+        event_id: input.eventId,
+        judge_id: item.staffId,
+        team_id: item.teamId,
+      }))
+      const { error } = await supabase.from('judge_assignments').insert(values)
+      if (error) throw new HttpError(400, 'No fue posible completar la asignacion aleatoria de jurados')
+      auditEntityType = 'judge_assignment'
+      auditEntityId = input.eventId
+      auditMetadata = { mode: 'random', assigned_teams: plan.length, judges: staffIds.length }
+      break
+    }
+    case 'randomize_mentor_assignments': {
+      const { staffIds, pendingTeamIds } = await loadRandomAssignmentContext(input.eventId, 'mentor')
+      const plan = planRandomAssignments(staffIds, pendingTeamIds)
+      const values: TablesInsert<'mentor_assignments'>[] = plan.map((item) => ({
+        event_id: input.eventId,
+        mentor_id: item.staffId,
+        team_id: item.teamId,
+        notes: '',
+      }))
+      const { error } = await supabase.from('mentor_assignments').insert(values)
+      if (error) throw new HttpError(400, 'No fue posible completar la asignacion aleatoria de mentores')
+      auditEntityType = 'mentor_assignment'
+      auditEntityId = input.eventId
+      auditMetadata = { mode: 'random', assigned_teams: plan.length, mentors: staffIds.length }
       break
     }
     case 'remove_judge_assignment': {

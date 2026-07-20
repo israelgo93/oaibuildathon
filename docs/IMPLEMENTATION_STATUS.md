@@ -1,8 +1,27 @@
 # Estado de implementacion
 
-Ultima verificacion tecnica: 16 de julio de 2026.
+Ultima verificacion tecnica: 20 de julio de 2026.
 
 Este documento separa el comportamiento desplegado, sus limitaciones verificadas y el contrato de iteracion ya archivado. No contiene credenciales, contrasenas, codigos de equipo ni secretos.
+
+## Soporte multi-evento verificado localmente
+
+La plataforma quedo preparada para operar mas de un evento sin cambios de esquema, porque todas las tablas de negocio ya discriminan por `event_id` y los correos de participantes son unicos por evento (una misma persona puede registrarse en otra edicion).
+
+- El panel administrativo incorpora un selector de evento y filtra por el evento elegido: resumen, retos, rubrica, equipos, participantes, outbox de correo, difusion, asignaciones, proyectos, analisis IA y ranking. Personas (staff) permanece global porque administra cuentas compartidas.
+- Nueva accion auditada `create_event`: crea un evento con registro, entregas, calificacion, vitrina y resultados desactivados, y copia opcionalmente la rubrica activa de otro evento.
+- Nuevas acciones auditadas `randomize_judge_assignments` y `randomize_mentor_assignments`: reparten aleatoria y equilibradamente (round-robin barajado con `crypto.randomInt`) todos los equipos `registered`/`active` sin asignacion entre los jurados o mentores activos del evento.
+- `/api/showcase` ahora agrega las entregas publicadas de todos los eventos con vitrina habilitada (evento mas reciente primero) e incluye el nombre del evento; la landing agrupa la vitrina por edicion. Asi los proyectos publicados de Manta permanecen visibles cuando exista otra edicion.
+- El worker de analisis IA acepta `POST` con sesion de administrador para drenar la cola durante el evento (el `GET` del cron con `CRON_SECRET` no cambia), los reintentos transitorios ahora son cortos (45s/90s/180s) y se encadenan dentro de la misma invocacion en lugar de esperar al cron diario. El boton `Procesar cola de analisis` aparece en Proyectos.
+- El poster de la landing usa `Luma Build Week Portoviejo.png` (`/assets/portoviejo-poster-1200.webp`).
+
+Supabase produccion contiene el evento `openai-build-week-portoviejo-2026` (21 de julio de 2026, 10:00 a 17:00 America/Guayaquil, cierre de entregas 16:00) con los cinco criterios de la rubrica copiados desde Manta y todos los interruptores apagados, incluida la vitrina, para que el codigo desplegado actual siga mostrando la vitrina de Manta. Antes de abrir el registro de Portoviejo hay que crear sus retos y activar los interruptores desde el panel.
+
+La verificacion local termino con TypeScript estricto, 146 pruebas en 23 archivos, `npm audit` sin vulnerabilidades y build de produccion limpio. Este alcance multi-evento **no se declara desplegado**: requiere publicar el codigo en Vercel.
+
+## Falla operativa del analisis IA del 15 de julio (diagnostico)
+
+Los analisis que quedaron "en cola" durante el evento no se perdieron: los reintentos transitorios se reprogramaban a +5 minutos, pero ningun proceso trabajaba la cola durante el dia; el unico recuperador era el cron diario de las 03:00 UTC con capacidad 2 por corrida. La evidencia en produccion muestra filas creadas el 15 de julio completadas los dias 16, 17 y 19 a las 03:42 UTC. Ademas, volver a borrador y reenviar invalido revisiones (`superseded`, 23 filas) y agoto la cuota de cinco revisiones automaticas en dos entregas (`revision_quota_exceeded`), que siguen disponibles solo mediante reintento manual de administracion. Las correcciones (reintentos cortos encadenados y drenaje manual autorizado) estan implementadas y verificadas localmente.
 
 ## Countdown de entregas verificado localmente
 
@@ -95,11 +114,11 @@ Resend esta autorizado mediante Vercel Marketplace. `RESEND_API_KEY`, `RESEND_FR
 | Registro de equipos | Implementado | Registro unico de 1 a 3 integrantes, obligatorios accesibles, contacto principal, reto, cupos, Turnstile opcional, cookie, codigo de recuperacion y confirmacion por correo | Un fallo de correo no invalida ni duplica el registro |
 | Portal del equipo | Implementado | Recuperacion por correo y codigo, borrador incompleto, envio final estricto, tecnologias tipadas, enlaces, deadline y estado | No hay edicion colaborativa simultanea |
 | Retos | Implementado | Titulo, enfoque, requisitos, estado, cupo opcional, deadline propio, ejes tematicos y temas sugeridos editables | La UI administra retos del evento existente mas reciente |
-| Administracion | Implementado con alcance acotado | Configuracion del evento mas reciente, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones, entregas y ranking privado | No crea eventos; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
+| Administracion | Implementado con alcance acotado | Selector de evento, creacion de eventos con copia de rubrica, retos, rubrica, equipos, staff, acceso temporal, difusion, asignaciones manuales y aleatorias, entregas y ranking privado por evento | El alcance multi-evento esta verificado localmente y pendiente de despliegue; las acciones de correo requieren confirmacion y no se ejecutaron durante QA |
 | Jurado | Implementado | Equipos asignados con entrega final, estado, deadline, `submitted_at`, tecnologias, enlaces y rubrica dinamica | Solo puede evaluar mientras la etapa esta abierta |
 | Analisis IA para jurado | Desplegado y verificado en backend | Panel lateral para admin y jurado asignado, evidencia acotada, cuatro especialistas, sintesis y ponderacion sugerida no vinculante | Worker y persistencia verificados en produccion; el ultimo despliegue no se recorrio visualmente con una sesion autenticada de admin/jurado |
 | Mentoria | Implementado | Equipos asignados, integrantes, reto, entrega y notas de organizacion | No modifica entregas ni calificaciones |
-| Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | Usa el evento mas reciente con vitrina habilitada |
+| Vitrina | Implementado | Solo muestra entregas publicadas por administracion y campos aprobados | En produccion usa el evento mas reciente con vitrina habilitada; el codigo local agrega todos los eventos con vitrina habilitada agrupados por edicion |
 | Resultados publicos | No implementado | Existe el campo `results_public` y ranking privado en administracion | No hay endpoint ni vista publica de resultados |
 | Correo transaccional | Implementado | SDK Resend, remitente verificado, HTML/texto, outbox transaccional, idempotencia, reintentos y accion administrativa | No existe webhook de entrega, rebote o queja; `sent` representa aceptacion del proveedor |
 
@@ -133,7 +152,7 @@ La RPC `register_team` crea de forma atomica el equipo, integrantes, reto, entre
 - Registro y calificacion usan banderas y ventanas del evento.
 - `PATCH /api/team` hace cumplir el cierre efectivo en servidor: el menor entre `events.submissions_close_at` y `challenges.submission_deadline_at`.
 - Las fechas se guardan en UTC y se muestran en `America/Guayaquil (UTC-5)`.
-- La configuracion publica, jurado, mentor y vitrina operan sobre el evento mas reciente. El panel actualiza eventos existentes, pero no incluye creacion de eventos.
+- La configuracion publica, jurado y mentor operan sobre el evento mas reciente por `starts_at`. El panel local permite crear eventos y trabajar sobre el evento seleccionado; la vitrina local agrega todos los eventos con vitrina habilitada.
 
 ## API desplegada
 

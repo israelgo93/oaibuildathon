@@ -7,7 +7,7 @@ import { ProjectAiAnalysisPanel } from '@/components/system/ProjectAiAnalysisPan
 import { BroadcastSection } from '@/pages/BroadcastSection'
 import { OptionalFieldLabel, RequiredFieldLabel, RequiredFieldsLegend } from '@/components/system/FormFieldLabel'
 import { ecuadorDateTimeInputValue, ecuadorDateTimeToIso, effectiveSubmissionDeadline, formatEcuadorDateTime } from '@/lib/dates'
-import type { AdminAction, AdminDashboardData, CreateStaffInput, CreateStaffResult, RegistrationInput, RegistrationResult, StaffAccessAction, StaffAccessResult, SubmissionAiAnalysisStatus, SubmissionAiAnalysisSummary } from '@/types/api'
+import type { AdminAction, AdminDashboardData, AnalysisWorkerRunResult, CreateStaffInput, CreateStaffResult, RegistrationInput, RegistrationResult, StaffAccessAction, StaffAccessResult, SubmissionAiAnalysisStatus, SubmissionAiAnalysisSummary } from '@/types/api'
 import type { Tables } from '@/types/database'
 
 type AdminTab = 'summary' | 'event' | 'challenges' | 'teams' | 'staff' | 'broadcast' | 'assignments' | 'projects' | 'results'
@@ -17,7 +17,13 @@ interface AdminSectionProps {
   mutate: (action: AdminAction) => Promise<void>
 }
 
+function defaultCityForEvent(event: Tables<'events'> | undefined): string {
+  const city = event?.location.split(',')[0]?.trim() ?? ''
+  return city
+}
+
 interface ProjectsSectionProps extends AdminSectionProps {
+  reload: () => Promise<void>
   onAnalysisChange: (analysis: SubmissionAiAnalysisSummary) => void
 }
 
@@ -100,7 +106,53 @@ function SummarySection({ dashboard }: { dashboard: AdminDashboardData }) {
   )
 }
 
-function EventSection({ dashboard, mutate }: AdminSectionProps) {
+function CreateEventForm({ sourceEvent, mutate, onEventCreated }: { sourceEvent: Tables<'events'>; mutate: AdminSectionProps['mutate']; onEventCreated: () => void }) {
+  const submit = async (submitEvent: FormEvent<HTMLFormElement>) => {
+    submitEvent.preventDefault()
+    const formElement = submitEvent.currentTarget
+    const form = new FormData(formElement)
+    const submissionsCloseAt = formText(form, 'submissionsCloseAt')
+    await mutate({
+      action: 'create_event',
+      name: formText(form, 'name'),
+      tagline: formText(form, 'tagline'),
+      location: formText(form, 'location'),
+      startsAt: ecuadorDateTimeToIso(formText(form, 'startsAt')),
+      endsAt: ecuadorDateTimeToIso(formText(form, 'endsAt')),
+      submissionsCloseAt: submissionsCloseAt ? ecuadorDateTimeToIso(submissionsCloseAt) : null,
+      minTeamSize: Number(form.get('minTeamSize')),
+      maxTeamSize: Number(form.get('maxTeamSize')),
+      copyCriteriaFromEventId: form.get('copyCriteria') === 'on' ? sourceEvent.id : null,
+    })
+    formElement.reset()
+    onEventCreated()
+  }
+
+  return (
+    <form className="system-card system-form admin-form" onSubmit={(submitEvent) => void submit(submitEvent)}>
+      <div className="form-section-heading">
+        <h2>Crear un nuevo evento</h2>
+        <p>El evento nuevo inicia con registro, entregas y calificacion cerrados; activalos desde su configuracion cuando este listo. Los retos se registran por evento en la pestana Retos y rubrica.</p>
+      </div>
+      <div className="form-grid">
+        <label>Nombre<input name="name" required maxLength={160} placeholder="OpenAI Build Week Portoviejo 2026" /></label>
+        <label>Frase corta<input name="tagline" maxLength={240} /></label>
+        <label>Ubicacion<input name="location" maxLength={160} placeholder="Portoviejo, Ecuador" /></label>
+        <label>Inicio<input name="startsAt" type="datetime-local" required /></label>
+        <label>Fin<input name="endsAt" type="datetime-local" required /></label>
+        <label>Cierre de entregas<input name="submissionsCloseAt" type="datetime-local" /></label>
+        <label>Minimo por equipo<select name="minTeamSize" defaultValue="1"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+        <label>Maximo por equipo<select name="maxTeamSize" defaultValue="3"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+      </div>
+      <div className="toggle-grid">
+        <label><input type="checkbox" name="copyCriteria" defaultChecked /> Copiar la rubrica activa de {sourceEvent.name}</label>
+      </div>
+      <button className="system-button system-button-primary" type="submit">Crear evento</button>
+    </form>
+  )
+}
+
+function EventSection({ dashboard, mutate, onEventCreated }: AdminSectionProps & { onEventCreated: () => void }) {
   const event = dashboard.events[0]
   if (!event) return <StatusMessage kind="error">No existe un evento configurado.</StatusMessage>
 
@@ -133,8 +185,9 @@ function EventSection({ dashboard, mutate }: AdminSectionProps) {
   }
 
   return (
+    <div className="admin-stack">
     <form className="system-card system-form admin-form" onSubmit={(submitEvent) => void submit(submitEvent)}>
-      <div className="form-section-heading"><h2>Configuracion del evento</h2><p>Los limites siempre quedan acotados a un maximo absoluto de tres personas.</p></div>
+      <div className="form-section-heading"><h2>Configuracion del evento</h2><p>Editas <strong>{event.name}</strong>. Los limites siempre quedan acotados a un maximo absoluto de tres personas.</p></div>
       <div className="form-grid">
         <label>Nombre<input name="name" required defaultValue={event.name} /></label>
         <label>Frase corta<input name="tagline" defaultValue={event.tagline} /></label>
@@ -158,6 +211,8 @@ function EventSection({ dashboard, mutate }: AdminSectionProps) {
       </div>
       <button className="system-button system-button-primary" type="submit">Guardar configuracion</button>
     </form>
+    <CreateEventForm sourceEvent={event} mutate={mutate} onEventCreated={onEventCreated} />
+    </div>
   )
 }
 
@@ -306,7 +361,7 @@ function ManualTeamForm({ dashboard, reload }: { dashboard: AdminDashboardData; 
       <div className="form-grid">
         <label><RequiredFieldLabel>Nombre del equipo</RequiredFieldLabel><input name="teamName" required /></label><label><OptionalFieldLabel>Organizacion o comunidad</OptionalFieldLabel><input name="organization" /></label>
         <label><RequiredFieldLabel>Nombre del contacto</RequiredFieldLabel><input name="fullName" required /></label><label><RequiredFieldLabel>Correo</RequiredFieldLabel><input name="email" type="email" required /></label>
-        <label><RequiredFieldLabel>WhatsApp o telefono</RequiredFieldLabel><input name="phone" type="tel" required /></label><label><RequiredFieldLabel>Ciudad</RequiredFieldLabel><input name="city" defaultValue="Manta" required /></label>
+        <label><RequiredFieldLabel>WhatsApp o telefono</RequiredFieldLabel><input name="phone" type="tel" required /></label><label><RequiredFieldLabel>Ciudad</RequiredFieldLabel><input name="city" defaultValue={defaultCityForEvent(event)} required /></label>
         <label><OptionalFieldLabel>Rol o fortaleza</OptionalFieldLabel><input name="memberRole" /></label><label><RequiredFieldLabel>Reto</RequiredFieldLabel><select name="challengeId" required defaultValue=""><option value="" disabled>Selecciona un reto</option>{dashboard.challenges.filter((challenge) => challenge.active).map((challenge) => <option key={challenge.id} value={challenge.id}>{challenge.title}</option>)}</select></label>
       </div>
       <button className="system-button system-button-primary" type="submit">Crear equipo</button>
@@ -336,7 +391,8 @@ function TeamsSection({ dashboard, mutate, reload }: AdminSectionProps & { reloa
         const challenge = dashboard.challenges.find((item) => item.id === teamChallenge?.challenge_id)
         const memberCount = dashboard.members.filter((member) => member.team_id === team.id).length
         return <tr key={team.id}><td><strong>{team.name}</strong><small>{team.city}</small></td><td>{challenge?.title ?? 'Sin reto'}</td><td>{memberCount}/3</td><td>{team.contact_email}</td><td><select value={team.status} onChange={(event) => void mutate({ action: 'set_team_status', teamId: team.id, status: event.target.value as Tables<'teams'>['status'] })}><option value="registered">Registrado</option><option value="active">Activo</option><option value="withdrawn">Retirado</option><option value="disqualified">Descalificado</option></select></td></tr>
-      })}</tbody></table></div></section>
+      })}</tbody></table></div>
+      <p className="system-help-text">Estados: <strong>Registrado</strong> completo el formulario y espera el evento; <strong>Activo</strong> confirmado participando en la jornada; <strong>Retirado</strong> abandono por decision propia; <strong>Descalificado</strong> excluido por la organizacion. Solo el registro discrimina por evento: una misma persona puede registrarse en otro evento sin conflicto.</p></section>
       <form className="system-card system-form create-row" onSubmit={(event) => void addMember(event)}><h3>Agregar participante</h3><label>Equipo<select value={selectedTeamId} onChange={(event) => setSelectedTeamId(event.target.value)}>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label>Nombre<input name="fullName" required /></label><label>Correo<input name="email" type="email" required /></label><label>Telefono<input name="phone" required /></label><label>Ciudad<input name="city" required /></label><label>Rol<input name="memberRole" /></label><button className="system-button system-button-primary" type="submit">Agregar</button></form>
     </div>
   )
@@ -479,12 +535,25 @@ function AssignmentsSection({ dashboard, mutate }: AdminSectionProps) {
   if (!event) return null
   const judges = dashboard.profiles.filter((profile) => profile.role === 'judge' && profile.active)
   const mentors = dashboard.profiles.filter((profile) => profile.role === 'mentor' && profile.active)
+  const assignableTeams = dashboard.teams.filter((team) => team.status === 'registered' || team.status === 'active')
+  const teamsWithoutJudge = assignableTeams.filter((team) => !dashboard.judgeAssignments.some((assignment) => assignment.team_id === team.id))
+  const teamsWithoutMentor = assignableTeams.filter((team) => !dashboard.mentorAssignments.some((assignment) => assignment.team_id === team.id))
   const assignJudge = async (submitEvent: FormEvent<HTMLFormElement>) => { submitEvent.preventDefault(); const form = new FormData(submitEvent.currentTarget); await mutate({ action: 'assign_judge', eventId: event.id, judgeId: formText(form, 'judgeId'), teamId: formText(form, 'teamId') }) }
   const assignMentor = async (submitEvent: FormEvent<HTMLFormElement>) => { submitEvent.preventDefault(); const form = new FormData(submitEvent.currentTarget); await mutate({ action: 'assign_mentor', eventId: event.id, mentorId: formText(form, 'mentorId'), teamId: formText(form, 'teamId'), notes: formText(form, 'notes') }) }
+  const randomizeJudges = () => {
+    if (window.confirm(`Se repartiran aleatoriamente ${teamsWithoutJudge.length} equipos sin jurado entre ${judges.length} jurados activos de ${event.name}. Deseas continuar?`)) {
+      void mutate({ action: 'randomize_judge_assignments', eventId: event.id })
+    }
+  }
+  const randomizeMentors = () => {
+    if (window.confirm(`Se repartiran aleatoriamente ${teamsWithoutMentor.length} equipos sin mentor entre ${mentors.length} mentores activos de ${event.name}. Deseas continuar?`)) {
+      void mutate({ action: 'randomize_mentor_assignments', eventId: event.id })
+    }
+  }
   const profileName = (id: string) => dashboard.profiles.find((profile) => profile.id === id)?.full_name ?? 'Perfil no disponible'
   const teamName = (id: string) => dashboard.teams.find((team) => team.id === id)?.name ?? 'Equipo no disponible'
 
-  return <div className="assignment-grid"><form className="system-card system-form admin-form" onSubmit={(event) => void assignJudge(event)}><h2>Asignar jurado</h2><label>Jurado<select name="judgeId" required>{judges.map((judge) => <option key={judge.id} value={judge.id}>{judge.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.judgeAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.judge_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_judge_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form><form className="system-card system-form admin-form" onSubmit={(event) => void assignMentor(event)}><h2>Asignar mentor</h2><label>Mentor<select name="mentorId" required>{mentors.map((mentor) => <option key={mentor.id} value={mentor.id}>{mentor.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label>Notas<textarea name="notes" rows={3} /></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.mentorAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.mentor_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_mentor_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form></div>
+  return <div className="assignment-grid"><form className="system-card system-form admin-form" onSubmit={(event) => void assignJudge(event)}><h2>Asignar jurado</h2><p className="system-help-text">Solo se muestran los equipos de {event.name}.</p><button className="system-button" type="button" disabled={judges.length === 0 || teamsWithoutJudge.length === 0} onClick={randomizeJudges}>Asignar aleatoriamente ({teamsWithoutJudge.length} equipos sin jurado)</button><label>Jurado<select name="judgeId" required>{judges.map((judge) => <option key={judge.id} value={judge.id}>{judge.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.judgeAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.judge_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_judge_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form><form className="system-card system-form admin-form" onSubmit={(event) => void assignMentor(event)}><h2>Asignar mentor</h2><p className="system-help-text">Solo se muestran los equipos de {event.name}.</p><button className="system-button" type="button" disabled={mentors.length === 0 || teamsWithoutMentor.length === 0} onClick={randomizeMentors}>Asignar aleatoriamente ({teamsWithoutMentor.length} equipos sin mentor)</button><label>Mentor<select name="mentorId" required>{mentors.map((mentor) => <option key={mentor.id} value={mentor.id}>{mentor.full_name}</option>)}</select></label><label>Equipo<select name="teamId" required>{dashboard.teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label><label>Notas<textarea name="notes" rows={3} /></label><button className="system-button system-button-primary" type="submit">Asignar</button><ul className="assignment-list">{dashboard.mentorAssignments.map((assignment) => <li key={assignment.id}><span>{profileName(assignment.mentor_id)} → {teamName(assignment.team_id)}</span><button type="button" onClick={() => void mutate({ action: 'remove_mentor_assignment', assignmentId: assignment.id })}>Quitar</button></li>)}</ul></form></div>
 }
 
 function submissionAnalysisStatusLabel(status: SubmissionAiAnalysisStatus): string {
@@ -502,23 +571,48 @@ function submissionAnalysisStatusLabel(status: SubmissionAiAnalysisStatus): stri
   }
 }
 
-function ProjectsSection({ dashboard, mutate, onAnalysisChange }: ProjectsSectionProps) {
+function ProjectsSection({ dashboard, mutate, reload, onAnalysisChange }: ProjectsSectionProps) {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null)
   const [analysisOpen, setAnalysisOpen] = useState(false)
+  const [queueMessage, setQueueMessage] = useState('')
+  const [queueBusy, setQueueBusy] = useState(false)
   const selectedSubmission = dashboard.submissions.find((submission) => submission.id === selectedSubmissionId) ?? null
   const selectedSummary = selectedSubmission
     ? dashboard.submissionAnalyses.find((analysis) => analysis.submissionId === selectedSubmission.id) ?? null
     : null
   const teamName = (teamId: string) => dashboard.teams.find((team) => team.id === teamId)?.name ?? 'Equipo'
+  const pendingAnalyses = dashboard.submissionAnalyses.filter((analysis) => analysis.status === 'queued' || analysis.status === 'running').length
   const openAnalysis = (submissionId: string) => {
     setSelectedSubmissionId(submissionId)
     setAnalysisOpen(true)
+  }
+
+  const drainAnalysisQueue = async () => {
+    setQueueBusy(true)
+    setQueueMessage('')
+    try {
+      const result = await authenticatedApiRequest<AnalysisWorkerRunResult>('/api/admin/analysis-worker', { method: 'POST' })
+      setQueueMessage(result.processed > 0
+        ? `Se procesaron ${result.processed} analisis pendientes (capacidad ${result.capacity} por corrida). Vuelve a ejecutar si quedan mas en cola.`
+        : 'No habia analisis listos para procesar en este momento; los reintentos programados aun no vencen o la cola esta vacia.')
+      await reload()
+    } catch (error) {
+      setQueueMessage(errorMessage(error))
+    } finally {
+      setQueueBusy(false)
+    }
   }
 
   return (
     <>
       <section className="system-card table-card">
         <div className="admin-section-heading"><div><p className="system-eyebrow">Entregas</p><h2>Proyectos y vitrina</h2></div><span>Publica solo entregas verificadas</span></div>
+        <div className="staff-bulk-actions">
+          <button className="system-button" type="button" disabled={queueBusy || pendingAnalyses === 0} onClick={() => void drainAnalysisQueue()}>
+            {queueBusy ? 'Procesando cola...' : `Procesar cola de analisis (${pendingAnalyses} pendientes)`}
+          </button>
+        </div>
+        {queueMessage ? <StatusMessage>{queueMessage}</StatusMessage> : null}
         <div className="responsive-table">
           <table>
             <thead><tr><th>Equipo / proyecto</th><th>Descripcion</th><th>Enlaces</th><th>Ultimo envio</th><th>Estado</th><th>Analisis IA</th><th>Accion</th></tr></thead>
@@ -582,9 +676,32 @@ function ResultsSection({ dashboard }: { dashboard: AdminDashboardData }) {
   return <section className="system-card table-card"><div className="admin-section-heading"><div><p className="system-eyebrow">Vista privada</p><h2>Ranking por promedio ponderado</h2></div><span>{dashboard.events[0]?.results_public ? 'Resultados publicos' : 'Resultados privados'}</span></div><div className="responsive-table"><table><thead><tr><th>Posicion</th><th>Equipo</th><th>Promedio</th><th>Evaluaciones</th></tr></thead><tbody>{ranking.map((item, index) => <tr key={item.team.id}><td>#{index + 1}</td><td><strong>{item.team.name}</strong></td><td>{item.average.toFixed(2)}%</td><td>{item.evaluationCount}</td></tr>)}</tbody></table></div></section>
 }
 
+function scopeDashboardToEvent(dashboard: AdminDashboardData, eventId: string): AdminDashboardData {
+  const selectedEvent = dashboard.events.find((event) => event.id === eventId)
+  if (!selectedEvent) return dashboard
+  const submissions = dashboard.submissions.filter((submission) => submission.event_id === eventId)
+  const submissionIds = new Set(submissions.map((submission) => submission.id))
+  return {
+    ...dashboard,
+    events: [selectedEvent],
+    challenges: dashboard.challenges.filter((challenge) => challenge.event_id === eventId),
+    teams: dashboard.teams.filter((team) => team.event_id === eventId),
+    members: dashboard.members.filter((member) => member.event_id === eventId),
+    teamChallenges: dashboard.teamChallenges.filter((item) => item.event_id === eventId),
+    submissions,
+    criteria: dashboard.criteria.filter((criterion) => criterion.event_id === eventId),
+    judgeAssignments: dashboard.judgeAssignments.filter((assignment) => assignment.event_id === eventId),
+    mentorAssignments: dashboard.mentorAssignments.filter((assignment) => assignment.event_id === eventId),
+    evaluations: dashboard.evaluations.filter((evaluation) => evaluation.event_id === eventId),
+    registrationEmailOutbox: dashboard.registrationEmailOutbox.filter((item) => item.event_id === eventId),
+    submissionAnalyses: dashboard.submissionAnalyses.filter((analysis) => submissionIds.has(analysis.submissionId)),
+  }
+}
+
 export function AdminPage() {
   const [dashboard, setDashboard] = useState<AdminDashboardData | null>(null)
   const [tab, setTab] = useState<AdminTab>('summary')
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState('')
@@ -623,31 +740,56 @@ export function AdminPage() {
     } catch (error) { setMessage(errorMessage(error)) }
   }, [loadDashboard])
 
-  const content = useMemo<ReactNode>(() => {
+  const activeEventId = useMemo(() => {
     if (!dashboard) return null
+    const exists = selectedEventId && dashboard.events.some((event) => event.id === selectedEventId)
+    return exists ? selectedEventId : dashboard.events[0]?.id ?? null
+  }, [dashboard, selectedEventId])
+
+  const scopedDashboard = useMemo(() => {
+    if (!dashboard || !activeEventId) return dashboard
+    return scopeDashboardToEvent(dashboard, activeEventId)
+  }, [dashboard, activeEventId])
+
+  const content = useMemo<ReactNode>(() => {
+    if (!scopedDashboard) return null
     switch (tab) {
-      case 'summary': return <SummarySection dashboard={dashboard} />
-      case 'event': return <EventSection dashboard={dashboard} mutate={mutate} />
-      case 'challenges': return <ChallengesSection dashboard={dashboard} mutate={mutate} />
-      case 'teams': return <TeamsSection dashboard={dashboard} mutate={mutate} reload={loadDashboard} />
-      case 'staff': return <StaffSection dashboard={dashboard} reload={loadDashboard} />
-      case 'broadcast': return dashboard.events[0] ? <BroadcastSection eventId={dashboard.events[0].id} /> : <StatusMessage kind="error">No existe un evento configurado.</StatusMessage>
-      case 'assignments': return <AssignmentsSection dashboard={dashboard} mutate={mutate} />
-      case 'projects': return <ProjectsSection dashboard={dashboard} mutate={mutate} onAnalysisChange={updateSubmissionAnalysis} />
-      case 'results': return <ResultsSection dashboard={dashboard} />
+      case 'summary': return <SummarySection dashboard={scopedDashboard} />
+      case 'event': return <EventSection dashboard={scopedDashboard} mutate={mutate} onEventCreated={() => setSelectedEventId(null)} />
+      case 'challenges': return <ChallengesSection dashboard={scopedDashboard} mutate={mutate} />
+      case 'teams': return <TeamsSection dashboard={scopedDashboard} mutate={mutate} reload={loadDashboard} />
+      case 'staff': return <StaffSection dashboard={scopedDashboard} reload={loadDashboard} />
+      case 'broadcast': return scopedDashboard.events[0] ? <BroadcastSection eventId={scopedDashboard.events[0].id} /> : <StatusMessage kind="error">No existe un evento configurado.</StatusMessage>
+      case 'assignments': return <AssignmentsSection dashboard={scopedDashboard} mutate={mutate} />
+      case 'projects': return <ProjectsSection dashboard={scopedDashboard} mutate={mutate} reload={loadDashboard} onAnalysisChange={updateSubmissionAnalysis} />
+      case 'results': return <ResultsSection dashboard={scopedDashboard} />
       default: { const exhaustiveCheck: never = tab; return exhaustiveCheck }
     }
-  }, [dashboard, tab, loadDashboard, mutate, updateSubmissionAnalysis])
+  }, [scopedDashboard, tab, loadDashboard, mutate, updateSubmissionAnalysis])
 
   if (loading) return <SystemLayout eyebrow="Organizacion" title="Centro de control"><StatusMessage>Cargando el sistema...</StatusMessage></SystemLayout>
   if (!dashboard) return <SystemLayout eyebrow="Organizacion" title="Centro de control"><StatusMessage kind="error">{message || 'No fue posible cargar el panel.'}</StatusMessage><Link className="system-button" to="/login">Iniciar sesion</Link></SystemLayout>
 
   return (
     <SystemLayout eyebrow="Organizacion" title="Centro de control" profile={dashboard.profile}>
+      {dashboard.events.length > 1 && activeEventId ? (
+        <div className="admin-event-picker">
+          <label>
+            Evento activo del panel
+            <select value={activeEventId} onChange={(event) => setSelectedEventId(event.target.value)}>
+              {dashboard.events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.name} · {formatEcuadorDateTime(event.starts_at)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
       <nav className="admin-tabs" aria-label="Secciones de administracion">{tabs.map((item) => <button key={item.id} className={tab === item.id ? 'active' : ''} type="button" onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>
       {message ? <StatusMessage kind="error">{message}</StatusMessage> : null}
       {success ? <StatusMessage kind="success">{success}</StatusMessage> : null}
-      <div className="admin-content">{content}</div>
+      <div className="admin-content" key={activeEventId ?? 'sin-evento'}>{content}</div>
     </SystemLayout>
   )
 }

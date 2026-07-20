@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
+import { requireRole } from '../auth.js'
 import { HttpError, requireMethod, setPrivateResponse, withErrorHandling } from '../http.js'
 import {
   processSubmissionAnalysisBatch,
@@ -21,8 +22,16 @@ function requireCronAuthorization(authorization: string | undefined): void {
 }
 
 export default withErrorHandling(async (request, response) => {
-  requireMethod(request, ['GET'])
-  requireCronAuthorization(request.headers.authorization)
+  requireMethod(request, ['GET', 'POST'])
+
+  // GET queda reservado para el cron con CRON_SECRET; POST permite que una
+  // sesion de administracion drene la cola pendiente durante el evento.
+  if (request.method === 'GET') {
+    requireCronAuthorization(request.headers.authorization)
+  } else {
+    await requireRole(request, ['admin'])
+  }
+
   const processed = await processSubmissionAnalysisBatch()
   setPrivateResponse(response)
   response.status(200).json({ processed, capacity: SUBMISSION_ANALYSIS_WORKER_BATCH_SIZE })

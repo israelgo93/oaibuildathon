@@ -53,13 +53,13 @@ export function MantaScene({ cinematic }: MantaSceneProps) {
             <div className="manta-poster-media">
               <img
                 src={LANDING_ASSETS.poster}
-                alt="Póster oficial de la edición inaugural de OpenAI Build Week Community Event en Manta, Ecuador"
+                alt="Póster oficial de OpenAI Build Week Community Event en Portoviejo, Ecuador"
                 width="1200"
                 height="1200"
                 loading="lazy"
               />
             </div>
-            <figcaption>Manta, 15 de julio.<br />La edición inaugural.</figcaption>
+            <figcaption>Portoviejo, 21 de julio.<br />La misión continúa.</figcaption>
           </motion.figure>
         </div>
       </div>

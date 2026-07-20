@@ -32,11 +32,18 @@ function requireLeaseToken(analysis: Tables<'submission_ai_analyses'>): string {
   return analysis.lease_token
 }
 
+// Espera acotada antes de reclamar un reintento dentro de la misma invocacion.
+// El limite mantiene la tarea dentro del presupuesto de la Function; lo que no
+// alcance a procesarse queda para el worker protegido o el reintento manual.
+const SCHEDULED_ANALYSIS_MAX_WAIT_MS = 240_000
+const SCHEDULED_ANALYSIS_SLEEP_SLICE_MS = 30_000
+
 async function processScheduledAnalysis(analysis: Tables<'submission_ai_analyses'>): Promise<boolean> {
   const dueAt = analysis.next_attempt_at ? new Date(analysis.next_attempt_at).getTime() : Date.now()
-  const delayMs = Math.max(0, dueAt - Date.now())
-  if (delayMs > 0) {
-    await new Promise<void>((resolve) => setTimeout(resolve, Math.min(delayMs, 35_000)))
+  const waitDeadline = Date.now() + SCHEDULED_ANALYSIS_MAX_WAIT_MS
+  while (Date.now() < dueAt && Date.now() < waitDeadline) {
+    const remainingMs = Math.min(dueAt - Date.now(), SCHEDULED_ANALYSIS_SLEEP_SLICE_MS)
+    await new Promise<void>((resolve) => setTimeout(resolve, Math.max(0, remainingMs)))
   }
   return safelyProcessSubmissionAnalysis(analysis.id)
 }
@@ -79,11 +86,14 @@ async function recordFailure(
 ): Promise<void> {
   const leaseToken = requireLeaseToken(analysis)
   const retry = error.retryable && analysis.attempts < analysis.max_attempts
-  const retryDelayMinutes = Math.min(60, 2 ** Math.max(0, analysis.attempts - 1) * 5)
+  // Reintentos cortos (45s, 90s, 180s) para que la misma invocacion pueda
+  // encadenarlos; el cron diario y el drenaje manual siguen siendo el respaldo.
+  const retryDelaySeconds = Math.min(180, 45 * 2 ** Math.max(0, analysis.attempts - 1))
+  const nextAttemptAt = new Date(Date.now() + retryDelaySeconds * 1000).toISOString()
   const values: TablesUpdate<'submission_ai_analyses'> = retry
     ? {
         status: 'queued',
-        next_attempt_at: new Date(Date.now() + retryDelayMinutes * 60_000).toISOString(),
+        next_attempt_at: nextAttemptAt,
         lease_expires_at: null,
         lease_token: null,
         completed_at: null,
@@ -110,6 +120,10 @@ async function recordFailure(
     .eq('status', 'running')
     .eq('attempts', analysis.attempts)
     .eq('lease_token', leaseToken)
+
+  if (retry) {
+    scheduleAnalysis({ ...analysis, status: 'queued', next_attempt_at: nextAttemptAt })
+  }
 }
 
 interface ExecutionContext {

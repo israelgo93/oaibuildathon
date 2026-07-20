@@ -59,6 +59,6 @@ The active edition is Portoviejo (July 21, 2026, `https://luma.com/buildathon.po
 
 ## Allowed system integration
 
-The landing may expose one direct system entry, `Registra tu equipo`, and a public showcase backed by `/api/showcase`. The endpoint selects published submissions from the most recent event with showcase visibility enabled and must project only approved project fields.
+The landing may expose one direct system entry, `Registra tu equipo`, and a public showcase backed by `/api/showcase`. The endpoint aggregates published submissions from every event with showcase visibility enabled (most recent event first), includes the event name so the section can group projects per edition, and must project only approved project fields.
 
 Registration forms, authentication, team recovery, required-field rules, deadlines, transactional email, administration, scoring, and mentoring belong to their dedicated routes. `results_public` currently has no landing section or public endpoint; do not imply that rankings are public merely because the flag exists.

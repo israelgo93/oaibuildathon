@@ -47,8 +47,8 @@ const jobs = [
     quality: 86,
   },
   {
-    source: 'Luma Build Week Manta.png',
-    output: 'manta-poster-1200.webp',
+    source: 'Luma Build Week Portoviejo.png',
+    output: 'portoviejo-poster-1200.webp',
     width: 1200,
     quality: 86,
   },

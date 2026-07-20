@@ -15,11 +15,11 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 
 ## Administration: current behavior
 
-1. Edit dates, team limits, stage switches, showcase visibility, and the result-visibility flag for the most recent event. The UI does not create an event.
+1. Pick the working event from the panel selector, edit its dates, team limits, stage switches, showcase visibility, and result-visibility flag, or create a new event (optionally copying the active rubric). New events start with registration, submissions, scoring, showcase, and public results disabled.
 2. Create or edit challenges, their thematic axes and suggested topics, and rubric criteria.
 3. Create Auth users for admins, judges, and mentors. For mentors/judges, enter a temporary password or let the server generate it; creation sends role-specific access instructions and the next login requires a password change.
 4. Register a team manually through the same registration endpoint used by the public flow.
-5. Assign judges and mentors to teams.
+5. Assign judges and mentors to teams manually, or distribute every unassigned eligible team (registered/active) randomly and evenly among active judges or mentors with the per-event random assignment actions.
 6. Review submissions, change state, and publish approved projects.
 7. Monitor private weighted results and completed evaluations. `results_public` has no public consumer today.
 8. From Personas, notify one active mentor/judge, only pending profiles, or all active mentors/judges after explicit confirmation. Bulk actions never include administrators and the UI does not delete or deactivate accounts.
