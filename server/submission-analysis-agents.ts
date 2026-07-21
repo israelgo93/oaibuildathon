@@ -355,7 +355,10 @@ export async function runSubmissionAnalysisAgents(
         outputType: specialistReportSchema,
         modelSettings: {
           store: false,
-          maxTokens: 1_800,
+          // El presupuesto cubre razonamiento + JSON: los modelos con
+          // razonamiento descuentan sus tokens internos de maxTokens y un
+          // limite corto trunca la salida estructurada (JSON invalido).
+          maxTokens: 8_000,
           reasoning: { effort: 'medium' },
           text: { verbosity: 'medium' },
         },
@@ -393,7 +396,9 @@ export async function runSubmissionAnalysisAgents(
     outputType: submissionAiReportSchema,
     modelSettings: {
       store: false,
-      maxTokens: 5_000,
+      // Igual que los especialistas: el informe final es extenso y comparte
+      // presupuesto con el razonamiento, por lo que necesita holgura amplia.
+      maxTokens: 16_000,
       reasoning: { effort: 'medium' },
       text: { verbosity: 'medium' },
     },
