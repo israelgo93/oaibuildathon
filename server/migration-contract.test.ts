@@ -66,6 +66,14 @@ const submissionAiAnalysisMigrationPath = join(
 )
 const submissionAiAnalysisMigration = readFileSync(submissionAiAnalysisMigrationPath, 'utf8')
 
+const creditBroadcastMigrationPath = join(
+  process.cwd(),
+  'supabase',
+  'migrations',
+  '20260721060218_add_credit_broadcast_delivery.sql',
+)
+const creditBroadcastMigration = readFileSync(creditBroadcastMigrationPath, 'utf8')
+
 describe('contrato SQL de la iteracion', () => {
   it('crea deadline por reto y el outbox dentro de register_team', () => {
     expect(migration).toContain('add column submission_deadline_at timestamptz')
@@ -195,6 +203,18 @@ describe('contrato SQL de la iteracion', () => {
     expect(submissionAiAnalysisMigration).toContain('lease_token = null')
     expect(submissionAiAnalysisMigration).toContain('analysis.attempts < analysis.max_attempts')
     expect(submissionAiAnalysisMigration).toContain("last_error_code = 'max_attempts_exceeded'")
+  })
+
+  it('agrega la entrega de creditos con columnas acotadas y RPC exclusiva del servidor', () => {
+    expect(creditBroadcastMigration).toContain("check (kind in ('message', 'credit'))")
+    expect(creditBroadcastMigration).toContain('add column api_credit_code text')
+    expect(creditBroadcastMigration).toContain('add column codex_credit_url text')
+    expect(creditBroadcastMigration).toContain("codex_credit_url like 'https://%'")
+    expect(creditBroadcastMigration).toContain('create or replace function public.create_credit_broadcast_campaign')
+    expect(creditBroadcastMigration).toContain('pg_catalog.pg_advisory_xact_lock')
+    expect(creditBroadcastMigration).toContain("'broadcast/v2/' || v_campaign.id::text")
+    expect(creditBroadcastMigration).toContain('from public, anon, authenticated')
+    expect(creditBroadcastMigration).toContain('to service_role')
   })
 
   it('mantiene la cola de analisis IA exclusiva para service_role', () => {

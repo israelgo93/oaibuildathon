@@ -5,6 +5,7 @@ import type {
   BroadcastResumeKind,
   CreateBroadcastInput,
   CreateBroadcastResult,
+  CreateCreditBroadcastInput,
   RetryBroadcastInput,
   RetryBroadcastResult,
 } from '../../src/types/api.js'
@@ -15,7 +16,7 @@ import { BroadcastRecipientParseError, parseBroadcastRecipients } from '../broad
 import { safelyProcessBroadcastCampaign } from '../broadcast-service.js'
 import { HttpError, parseJsonBody, requireMethod, setPrivateResponse, withErrorHandling } from '../http.js'
 import { getServerSupabase } from '../supabase.js'
-import { broadcastSchema, retryBroadcastSchema } from '../validation.js'
+import { broadcastSchema, creditBroadcastSchema, retryBroadcastSchema } from '../validation.js'
 
 function scheduleBroadcast(campaignId: string, actorId: string): void {
   const task = safelyProcessBroadcastCampaign(campaignId, actorId)
@@ -163,6 +164,47 @@ async function createBroadcast(
   }
 }
 
+async function createCreditBroadcast(
+  body: unknown,
+  actorId: string,
+): Promise<CreateBroadcastResult> {
+  const input: CreateCreditBroadcastInput = creditBroadcastSchema.parse(body)
+
+  const recipients: Json = input.recipients.map((recipient) => ({
+    email: recipient.email,
+    api_credit: recipient.apiCredit,
+    codex_credit: recipient.codexCredit,
+  }))
+  const { data: campaignRaw, error } = await getServerSupabase().rpc('create_credit_broadcast_campaign', {
+    p_event_id: input.eventId,
+    p_created_by: actorId,
+    p_request_id: input.requestId,
+    p_subject: input.subject,
+    p_message_text: input.message,
+    p_recipients: recipients,
+  })
+  if (error || !campaignRaw) throw new HttpError(400, 'No fue posible crear la entrega de creditos')
+  const campaign = campaignRaw as Tables<'broadcast_campaigns'>
+
+  await writeAuditLog(actorId, 'broadcast.created', 'broadcast_campaign', campaign.id, {
+    kind: campaign.kind,
+    recipient_count: campaign.recipient_count,
+  })
+  scheduleBroadcast(campaign.id, actorId)
+
+  return {
+    campaignId: campaign.id,
+    recipientCount: campaign.recipient_count,
+    duplicateCount: 0,
+    status: campaign.status,
+  }
+}
+
+function isCreditBroadcastBody(body: unknown): boolean {
+  if (typeof body !== 'object' || body === null || !('kind' in body)) return false
+  return body.kind === 'credit'
+}
+
 async function resumeBroadcast(body: unknown, actorId: string): Promise<RetryBroadcastResult> {
   const input: RetryBroadcastInput = retryBroadcastSchema.parse(body)
   const supabase = getServerSupabase()
@@ -220,7 +262,10 @@ export default withErrorHandling(async (request, response) => {
   }
 
   if (method === 'POST') {
-    const result = await createBroadcast(parseJsonBody(request), profile.id)
+    const body = parseJsonBody(request)
+    const result = isCreditBroadcastBody(body)
+      ? await createCreditBroadcast(body, profile.id)
+      : await createBroadcast(body, profile.id)
     setPrivateResponse(response)
     response.status(202).json(result)
     return

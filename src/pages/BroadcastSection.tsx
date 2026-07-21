@@ -9,6 +9,7 @@ import {
   parseBroadcastRecipients,
 } from '@/lib/broadcast-recipients'
 import { formatEcuadorDateTime } from '@/lib/dates'
+import { CreditBroadcastSection } from '@/pages/CreditBroadcastSection'
 import type {
   BroadcastCampaignSummary,
   BroadcastListResult,
@@ -37,6 +38,7 @@ interface Feedback {
 type BroadcastCampaign = BroadcastCampaignSummary
 type BroadcastStatus = BroadcastCampaign['status']
 type BroadcastCtaKey = CreateBroadcastInput['ctaKey']
+type BroadcastKind = BroadcastCampaign['kind']
 
 const CTA_OPTIONS: readonly { value: BroadcastCtaKey; label: string; path: string }[] = [
   { value: 'none', label: 'Sin botón', path: '' },
@@ -87,6 +89,19 @@ function ctaLabel(ctaKey: BroadcastCtaKey): string {
   }
 }
 
+function campaignKindLabel(kind: BroadcastKind): string {
+  switch (kind) {
+    case 'message':
+      return 'Mensaje general'
+    case 'credit':
+      return 'Entrega de créditos'
+    default: {
+      const exhaustiveCheck: never = kind
+      return exhaustiveCheck
+    }
+  }
+}
+
 function campaignStatusLabel(status: BroadcastStatus): string {
   switch (status) {
     case 'queued':
@@ -124,6 +139,7 @@ function resumeActionLabel(campaign: BroadcastCampaign): string {
 }
 
 export function BroadcastSection({ eventId }: BroadcastSectionProps) {
+  const [mode, setMode] = useState<BroadcastKind>('message')
   const [recipients, setRecipients] = useState('')
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
@@ -304,6 +320,32 @@ export function BroadcastSection({ eventId }: BroadcastSectionProps) {
         <p>Importa destinatarios, revisa el mensaje y confirma cada envío antes de ponerlo en cola.</p>
       </header>
 
+      <div className="broadcast-mode-switch" role="tablist" aria-label="Tipo de difusión">
+        <button
+          className={`system-button${mode === 'message' ? ' system-button-primary' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={mode === 'message'}
+          disabled={busy}
+          onClick={() => setMode('message')}
+        >
+          Mensaje general
+        </button>
+        <button
+          className={`system-button${mode === 'credit' ? ' system-button-primary' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={mode === 'credit'}
+          disabled={busy}
+          onClick={() => setMode('credit')}
+        >
+          Entrega de créditos
+        </button>
+      </div>
+
+      {mode === 'credit' ? (
+        <CreditBroadcastSection eventId={eventId} onCreated={loadCampaigns} />
+      ) : (
       <form
         className="system-card system-form broadcast-form"
         aria-busy={busy}
@@ -460,6 +502,7 @@ export function BroadcastSection({ eventId }: BroadcastSectionProps) {
           <small>El envío solo comienza después de esta confirmación. No se realizan envíos automáticos.</small>
         </div>
       </form>
+      )}
 
       <section className="system-card broadcast-history" aria-labelledby="broadcast-history-title">
         <header className="broadcast-history-heading">
@@ -498,7 +541,7 @@ export function BroadcastSection({ eventId }: BroadcastSectionProps) {
                   <tr key={campaign.id}>
                     <td>
                       <strong>{campaign.subject}</strong>
-                      <small>{ctaLabel(campaign.cta_key)}</small>
+                      <small>{campaign.kind === 'credit' ? campaignKindLabel(campaign.kind) : ctaLabel(campaign.cta_key)}</small>
                     </td>
                     <td>
                       <span className={`status-pill broadcast-status broadcast-status-${campaign.status}`}>

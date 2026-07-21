@@ -12,7 +12,7 @@ This reference describes the deployed schema and application verified through 20
 - `project_submissions`: one project per team with draft, submitted, or published state; fields include project name, short description, problem, solution, `tech_stack text[]`, demo, repository, presentation, video, `submitted_at`, and `published_at`.
 - `profiles`: Supabase Auth users with admin, judge, or mentor role, mandatory-change state, credential version and access-email delivery state.
 - `password_reset_requests`: HMAC-only recovery quota evidence for email/IP limits; it never stores the original email or IP.
-- `broadcast_campaigns` and `broadcast_recipients`: confirmed participant communications, normalized recipients, stable idempotency keys, batch progress and retry classification.
+- `broadcast_campaigns` and `broadcast_recipients`: confirmed participant communications, normalized recipients, stable idempotency keys, batch progress and retry classification. Campaigns carry `kind` (`message` or `credit`); credit recipients also store a bounded `api_credit_code` and an HTTPS `codex_credit_url` rendered inside a fixed template.
 - `registration_email_outbox`: transactional registration confirmation state, attempts, provider ID and safe retry metadata.
 - `judge_assignments` and `mentor_assignments`: explicit team access.
 - `evaluation_criteria`: dynamic rubric with maximum score, weight, order, and active state.
@@ -75,6 +75,7 @@ The AI table follows the same boundary. Its raw JSON, usage, trace identifier, r
 10. `20260714230812_harden_broadcast_retry_and_idempotency.sql`: stable recipient idempotency, retry classification and atomic recovery of interrupted campaigns.
 11. `20260714230821_harden_staff_access_and_password_recovery.sql`: mandatory-change preservation and atomic recovery quota claims by email/IP.
 12. `20260715051406_add_submission_ai_analysis.sql`: revision-scoped AI analysis outbox, content hash, cooldown/quota, trigger/backfill, RLS/service grants and fenced lease claim.
+13. `20260721060218_add_credit_broadcast_delivery.sql`: campaign `kind`, bounded per-recipient API credit code and HTTPS Codex URL columns, and the idempotent service-only `create_credit_broadcast_campaign` RPC.
 
 Never edit these applied files. Use `npx supabase@2.109.1 migration new nombre_descriptivo`, reconcile generated types with `src/types/database.ts`, and verify remote history.
 

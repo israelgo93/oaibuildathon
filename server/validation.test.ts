@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { effectiveSubmissionDeadline, formatEcuadorDateTime, isDeadlineReached } from '../src/lib/dates.js'
-import { adminActionSchema, broadcastSchema, evaluationSchema, passwordRecoverySchema, registrationSchema, retryBroadcastSchema, staffAccessSchema, staffSchema, submissionSchema } from './validation.js'
+import { adminActionSchema, broadcastSchema, creditBroadcastSchema, evaluationSchema, passwordRecoverySchema, registrationSchema, retryBroadcastSchema, staffAccessSchema, staffSchema, submissionSchema } from './validation.js'
 
 const validMember = {
   fullName: 'Ana Builder',
@@ -235,5 +235,49 @@ describe('broadcastSchema', () => {
     const campaignId = '60000000-0000-4000-8000-000000000001'
     expect(retryBroadcastSchema.safeParse({ action: 'resume', campaignId }).success).toBe(true)
     expect(retryBroadcastSchema.safeParse({ action: 'retry_failed', campaignId }).success).toBe(false)
+  })
+})
+
+describe('creditBroadcastSchema', () => {
+  const creditBroadcast = {
+    kind: 'credit',
+    requestId: '50000000-0000-4000-8000-000000000002',
+    eventId: validRegistration.eventId,
+    subject: 'Tus creditos de OpenAI y Codex',
+    message: 'Gracias por completar tu check-in.',
+    recipients: [
+      { email: 'uno@example.com', apiCredit: 'PROMO-UNO-1', codexCredit: 'https://chatgpt.com/codex/claim/uno' },
+      { email: 'dos@example.com', apiCredit: 'PROMO-DOS-2', codexCredit: 'https://chatgpt.com/codex/claim/dos' },
+    ],
+  }
+
+  it('acepta destinatarios con codigo y enlace HTTPS validos', () => {
+    expect(creditBroadcastSchema.safeParse(creditBroadcast).success).toBe(true)
+  })
+
+  it('rechaza codigos invalidos, URLs inseguras y campos extra', () => {
+    expect(creditBroadcastSchema.safeParse({
+      ...creditBroadcast,
+      recipients: [{ email: 'uno@example.com', apiCredit: 'ab', codexCredit: 'https://chatgpt.com/codex/claim/uno' }],
+    }).success).toBe(false)
+    expect(creditBroadcastSchema.safeParse({
+      ...creditBroadcast,
+      recipients: [{ email: 'uno@example.com', apiCredit: 'PROMO-UNO-1', codexCredit: 'http://chatgpt.com/codex' }],
+    }).success).toBe(false)
+    expect(creditBroadcastSchema.safeParse({
+      ...creditBroadcast,
+      recipients: [{ email: 'uno@example.com', apiCredit: 'PROMO-UNO-1', codexCredit: 'https://chatgpt.com/codex', extra: 'x' }],
+    }).success).toBe(false)
+  })
+
+  it('rechaza correos repetidos y listados vacios', () => {
+    expect(creditBroadcastSchema.safeParse({
+      ...creditBroadcast,
+      recipients: [
+        { email: 'uno@example.com', apiCredit: 'PROMO-UNO-1', codexCredit: 'https://chatgpt.com/codex/claim/uno' },
+        { email: 'UNO@example.com'.toLowerCase(), apiCredit: 'PROMO-UNO-2', codexCredit: 'https://chatgpt.com/codex/claim/uno2' },
+      ],
+    }).success).toBe(false)
+    expect(creditBroadcastSchema.safeParse({ ...creditBroadcast, recipients: [] }).success).toBe(false)
   })
 })

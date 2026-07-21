@@ -62,6 +62,7 @@ export type Database = {
           event_id: string
           failed_count: number
           id: string
+          kind: string
           message_text: string
           recipient_count: number
           request_id: string
@@ -80,6 +81,7 @@ export type Database = {
           event_id: string
           failed_count?: number
           id?: string
+          kind?: string
           message_text: string
           recipient_count: number
           request_id: string
@@ -98,6 +100,7 @@ export type Database = {
           event_id?: string
           failed_count?: number
           id?: string
+          kind?: string
           message_text?: string
           recipient_count?: number
           request_id?: string
@@ -126,10 +129,12 @@ export type Database = {
       }
       broadcast_recipients: {
         Row: {
+          api_credit_code: string | null
           attempts: number
           batch_number: number
           batch_position: number
           campaign_id: string
+          codex_credit_url: string | null
           created_at: string
           email: string
           id: string
@@ -143,10 +148,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          api_credit_code?: string | null
           attempts?: number
           batch_number: number
           batch_position: number
           campaign_id: string
+          codex_credit_url?: string | null
           created_at?: string
           email: string
           id?: string
@@ -160,10 +167,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          api_credit_code?: string | null
           attempts?: number
           batch_number?: number
           batch_position?: number
           campaign_id?: string
+          codex_credit_url?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1032,6 +1041,7 @@ export type Database = {
           event_id: string
           failed_count: number
           id: string
+          kind: string
           message_text: string
           recipient_count: number
           request_id: string
@@ -1118,6 +1128,42 @@ export type Database = {
           event_id: string
           failed_count: number
           id: string
+          kind: string
+          message_text: string
+          recipient_count: number
+          request_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "broadcast_campaigns"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_credit_broadcast_campaign: {
+        Args: {
+          p_created_by: string
+          p_event_id: string
+          p_message_text: string
+          p_recipients: Json
+          p_request_id: string
+          p_subject: string
+        }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          cta_key: string
+          dispatch_version: number
+          event_id: string
+          failed_count: number
+          id: string
+          kind: string
           message_text: string
           recipient_count: number
           request_id: string
@@ -1180,6 +1226,7 @@ export type Database = {
           event_id: string
           failed_count: number
           id: string
+          kind: string
           message_text: string
           recipient_count: number
           request_id: string

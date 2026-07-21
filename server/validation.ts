@@ -1,6 +1,13 @@
 import { z } from 'zod'
 import { normalizeTechnologyStack } from '../src/lib/technologies.js'
 import { isValidSubmissionUrl } from '../src/lib/submission.js'
+import {
+  CODEX_CREDIT_URL_MAX_LENGTH,
+  CREDIT_CODE_MAX_LENGTH,
+  CREDIT_RECIPIENT_LIMIT,
+  isValidCodexCreditUrl,
+  isValidCreditCode,
+} from '../src/lib/credit-recipients.js'
 
 const requiredText = (label: string, maxLength: number) =>
   z.string().trim().min(1, `${label} es obligatorio`).max(maxLength, `${label} es demasiado largo`)
@@ -120,6 +127,33 @@ export const broadcastSchema = z.object({
   message: requiredText('El mensaje', 5000),
   ctaKey: z.enum(['none', 'landing', 'registration', 'team_portal', 'staff_login']),
   recipients: z.string().min(1, 'Agrega al menos un correo').max(262_144, 'El archivo o listado supera 256 KiB'),
+}).strict()
+
+export const creditBroadcastSchema = z.object({
+  kind: z.literal('credit'),
+  requestId: z.string().uuid(),
+  eventId: z.string().uuid(),
+  subject: requiredText('El asunto', 150),
+  message: requiredText('El mensaje', 5000),
+  recipients: z.array(z.object({
+    email: z.string().trim().toLowerCase().email().max(254),
+    apiCredit: z.string().trim().max(CREDIT_CODE_MAX_LENGTH)
+      .refine(isValidCreditCode, 'El codigo apicredit no es valido'),
+    codexCredit: z.string().trim().max(CODEX_CREDIT_URL_MAX_LENGTH)
+      .refine(isValidCodexCreditUrl, 'La URL codexcredit debe ser HTTPS valida'),
+  }).strict())
+    .min(1, 'Agrega al menos un destinatario')
+    .max(CREDIT_RECIPIENT_LIMIT, `La entrega admite hasta ${CREDIT_RECIPIENT_LIMIT} destinatarios`)
+    .superRefine((recipients, context) => {
+      const seen = new Set<string>()
+      for (const recipient of recipients) {
+        if (seen.has(recipient.email)) {
+          context.addIssue({ code: 'custom', message: `El correo ${recipient.email} esta repetido en el listado` })
+          return
+        }
+        seen.add(recipient.email)
+      }
+    }),
 }).strict()
 
 export const retryBroadcastSchema = z.object({

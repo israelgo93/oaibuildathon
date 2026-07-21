@@ -4,9 +4,11 @@ import {
   BROADCAST_RECIPIENT_LIMIT,
   BroadcastEmailError,
   BroadcastRecipientParseError,
+  OPENAI_PROMOTIONS_URL,
   ResendBroadcastEmailTransport,
   broadcastBatchIdempotencyKey,
   buildBroadcastEmail,
+  buildCreditBroadcastEmail,
   parseBroadcastRecipients,
   resolveBroadcastCta,
   type BroadcastBatchRequestOptions,
@@ -170,6 +172,75 @@ describe('CTA y plantilla de difusion', () => {
 
     expect(email.html).not.toContain('<a href=')
     expect(email.text).toBe('Mensaje informativo.')
+  })
+})
+
+describe('plantilla de entrega de creditos', () => {
+  const creditInput = {
+    to: 'PARTICIPANTE@example.com',
+    subject: 'Tus creditos de OpenAI y Codex',
+    message: 'Gracias por completar tu check-in en la Build Week.',
+    apiCreditCode: 'PROMO-ABCD-1234',
+    codexCreditUrl: 'https://chatgpt.com/codex/claim/abc123',
+  }
+
+  it('incluye el codigo de la API, los pasos de canje y el enlace personal de Codex', () => {
+    const email = buildCreditBroadcastEmail(creditInput, configuration)
+
+    expect(email.to).toBe('participante@example.com')
+    expect(email.from).toBe(configuration.from)
+    expect(email.html).toContain('PROMO-ABCD-1234')
+    expect(email.html).toContain(OPENAI_PROMOTIONS_URL)
+    expect(email.html).toContain('Canjear creditos de la API')
+    expect(email.html).toContain('Start building')
+    expect(email.html).toContain('Reclamar creditos de Codex')
+    expect(email.html).toContain('https://chatgpt.com/codex/claim/abc123')
+    expect(email.text).toContain(`Tu codigo: PROMO-ABCD-1234`)
+    expect(email.text).toContain(OPENAI_PROMOTIONS_URL)
+    expect(email.text).toContain('Settings > Organization > Billing > Promotions')
+    expect(email.text).toContain('https://chatgpt.com/codex/claim/abc123')
+  })
+
+  it('escapa contenido peligroso en asunto, mensaje y codigo', () => {
+    const email = buildCreditBroadcastEmail({
+      ...creditInput,
+      subject: 'Creditos <urgentes>',
+      message: 'Hola <script>alert("x")</script>',
+      apiCreditCode: 'PROMO<b>123</b>',
+    }, configuration)
+
+    expect(email.html).toContain('Creditos &lt;urgentes&gt;')
+    expect(email.html).not.toContain('<script>')
+    expect(email.html).toContain('PROMO&lt;b&gt;123&lt;/b&gt;')
+  })
+
+  it('rechaza un codigo vacio o con espacios internos', () => {
+    expectBroadcastError(
+      () => buildCreditBroadcastEmail({ ...creditInput, apiCreditCode: '' }, configuration),
+      'invalid_content',
+    )
+    expectBroadcastError(
+      () => buildCreditBroadcastEmail({ ...creditInput, apiCreditCode: 'con espacios' }, configuration),
+      'invalid_content',
+    )
+  })
+
+  it('rechaza un enlace de Codex que no sea HTTPS', () => {
+    expectBroadcastError(
+      () => buildCreditBroadcastEmail({ ...creditInput, codexCreditUrl: 'http://chatgpt.com/codex' }, configuration),
+      'invalid_content',
+    )
+    expectBroadcastError(
+      () => buildCreditBroadcastEmail({ ...creditInput, codexCreditUrl: 'javascript:alert(1)' }, configuration),
+      'invalid_content',
+    )
+  })
+
+  it('rechaza un destinatario invalido', () => {
+    expectBroadcastError(
+      () => buildCreditBroadcastEmail({ ...creditInput, to: 'no-es-correo' }, configuration),
+      'invalid_recipient',
+    )
   })
 })
 

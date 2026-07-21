@@ -104,6 +104,7 @@ const team = teamRaw as Tables<'teams'>
 - Produccion aplica el menor deadline global/por reto, oculta borradores al jurado y muestra `submitted_at`.
 - Resend, el outbox, el dominio remitente y las variables de Production estan desplegados y verificados.
 - Produccion incorpora correo de acceso, recuperacion de contrasena y difusion; nunca ejecutar acciones masivas como parte de una prueba.
+- La difusion incluye un modo de entrega de creditos (columnas `correo`, `apicredit`, `codexcredit` desde `.xlsx`/`.csv`/`.txt`) con plantilla fija de canje de la API de OpenAI y enlace personal de Codex. La migracion `20260721060218_add_credit_broadcast_delivery.sql` esta aplicada en Supabase produccion; el codigo esta verificado localmente pero el deployment de Vercel con este modo aun no se redesplego ni se realizo un envio real.
 - `results_public` no tiene endpoint ni vista publica consumidora.
 - Produccion incorpora analisis IA con OpenAI Agents SDK, panel lateral para administracion/jurado y recuperacion durable. `OPENAI_API_KEY` y `CRON_SECRET` estan configuradas como Sensitive; el worker autorizado proceso una entrega que termino `completed` con `gpt-5.5`, cuatro especialistas y resultados estructurados persistidos. No se repitio visualmente el panel desplegado por falta de una sesion autenticada disponible.
 

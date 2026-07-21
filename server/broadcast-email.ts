@@ -5,6 +5,7 @@ import {
   type CreateBatchResponse,
 } from 'resend'
 import { isBroadcastRecipientEmail } from '../src/lib/broadcast-recipients.js'
+import { isValidCodexCreditUrl, isValidCreditCode } from '../src/lib/credit-recipients.js'
 export {
   BROADCAST_EMAIL_LENGTH_LIMIT,
   BROADCAST_IMPORT_BYTES_LIMIT,
@@ -14,6 +15,8 @@ export {
 } from '../src/lib/broadcast-recipients.js'
 
 export const RESEND_BATCH_SIZE = 100
+
+export const OPENAI_PROMOTIONS_URL = 'https://platform.openai.com/settings/organization/billing/promotions'
 
 export type BroadcastCtaKey = 'none' | 'landing' | 'registration' | 'team_portal' | 'staff_login'
 
@@ -46,6 +49,14 @@ export interface BroadcastEmailInput {
   subject: string
   message: string
   cta: BroadcastCtaKey
+}
+
+export interface CreditBroadcastEmailInput {
+  to: string
+  subject: string
+  message: string
+  apiCreditCode: string
+  codexCreditUrl: string
 }
 
 export interface BroadcastEmailMessage {
@@ -195,6 +206,84 @@ export function buildBroadcastEmail(
         <p style="font-size:13px;color:#555">Este es un mensaje informativo de la organizacion.</p>
       </div>
     `.trim(),
+  }
+}
+
+const API_CREDIT_STEPS = [
+  `Abre la pagina de promociones (${OPENAI_PROMOTIONS_URL}) e inicia sesion o crea tu cuenta de OpenAI Platform.`,
+  'Si aparece "Start building", haz clic y asigna un nombre a tu organizacion. Puedes omitir agregar miembros, crear una API key y agregar una tarjeta.',
+  'Pega el codigo exactamente como aparece en este correo y canjealo. Actualiza la seccion de Billing para confirmar que los creditos se agregaron.',
+] as const
+
+export function buildCreditBroadcastEmail(
+  input: CreditBroadcastEmailInput,
+  configuration: BroadcastEmailConfiguration,
+): BroadcastEmailMessage {
+  const config = validatedConfiguration(configuration)
+  const to = input.to.trim().toLowerCase()
+  const subject = input.subject.trim()
+  const message = input.message.trim()
+  const apiCreditCode = input.apiCreditCode.trim()
+  const codexCreditUrl = input.codexCreditUrl.trim()
+
+  if (!isBroadcastRecipientEmail(to)) {
+    throw new BroadcastEmailError('invalid_recipient', 'El destinatario no contiene un correo valido')
+  }
+  if (!subject || !message) {
+    throw new BroadcastEmailError('invalid_content', 'El asunto y el mensaje son obligatorios')
+  }
+  if (!isValidCreditCode(apiCreditCode)) {
+    throw new BroadcastEmailError('invalid_content', 'El codigo de credito de la API no es valido')
+  }
+  if (!isValidCodexCreditUrl(codexCreditUrl)) {
+    throw new BroadcastEmailError('invalid_content', 'La URL de creditos de Codex no es valida')
+  }
+
+  const messageHtml = escapeHtml(message).replace(/\r?\n/g, '<br />')
+  const stepsHtml = API_CREDIT_STEPS
+    .map((step) => `<li style="margin:0 0 10px">${escapeHtml(step)}</li>`)
+    .join('')
+  const stepsText = API_CREDIT_STEPS
+    .map((step, index) => `${index + 1}. ${step}`)
+    .join('\n')
+
+  const text = [
+    message,
+    'Creditos para la API de OpenAI',
+    `Tu codigo: ${apiCreditCode}`,
+    stepsText,
+    `Canjear creditos de la API: ${OPENAI_PROMOTIONS_URL}`,
+    'Tambien puedes canjearlo desde platform.openai.com en Settings > Organization > Billing > Promotions.',
+    'Creditos de Codex',
+    `Reclama tus creditos de Codex con tu enlace personal: ${codexCreditUrl}`,
+  ].join('\n\n')
+
+  const html = `
+      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#171717;max-width:620px;margin:0 auto">
+        <p style="font-size:14px;text-transform:uppercase;letter-spacing:.08em">OpenAI Build Week Manta</p>
+        <h1 style="font-size:28px;line-height:1.2">${escapeHtml(subject)}</h1>
+        <p>${messageHtml}</p>
+        <h2 style="font-size:20px;margin:28px 0 8px">Creditos para la API de OpenAI</h2>
+        <p style="margin:0 0 6px">Tu codigo de credito:</p>
+        <p style="margin:0 0 16px"><code style="display:inline-block;padding:12px 18px;background:#f4f4f5;border:1px solid #d4d4d8;border-radius:8px;font-size:18px;letter-spacing:.04em">${escapeHtml(apiCreditCode)}</code></p>
+        <ol style="margin:0 0 16px;padding-left:20px">${stepsHtml}</ol>
+        <p style="margin:0 0 8px"><a href="${escapeHtml(OPENAI_PROMOTIONS_URL)}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:999px">Canjear creditos de la API</a></p>
+        <p style="font-size:13px;color:#555;margin:0 0 24px">Tambien puedes canjearlo desde platform.openai.com en Settings &gt; Organization &gt; Billing &gt; Promotions.</p>
+        <h2 style="font-size:20px;margin:28px 0 8px">Creditos de Codex</h2>
+        <p style="margin:0 0 12px">Reclama tus creditos de Codex con tu enlace personal:</p>
+        <p style="margin:0 0 8px"><a href="${escapeHtml(codexCreditUrl)}" style="display:inline-block;padding:12px 18px;background:#111;color:#fff;text-decoration:none;border-radius:999px">Reclamar creditos de Codex</a></p>
+        <p style="font-size:13px;color:#555;word-break:break-all">Si el boton no funciona, copia y pega este enlace: ${escapeHtml(codexCreditUrl)}</p>
+        <p style="font-size:13px;color:#555">Este es un mensaje informativo de la organizacion. El codigo y el enlace son personales; no los compartas.</p>
+      </div>
+    `.trim()
+
+  return {
+    from: config.from,
+    to,
+    replyTo: config.replyTo,
+    subject,
+    text,
+    html,
   }
 }
 

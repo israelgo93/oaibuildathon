@@ -71,6 +71,12 @@ Produccion incorpora:
 - activacion de una nueva clave existente solo despues de que Resend acepta el mensaje, conservando la clave anterior ante fallos del proveedor;
 - campanas de hasta 500 destinatarios, TXT/CSV con columna de correo, vista previa, CTA interna, lotes de 100, idempotencia estable, estado durable y recuperacion de envios interrumpidos o transitorios.
 
+## Entrega de creditos por difusion (implementada, pendiente de despliegue en Vercel)
+
+La seccion de difusion agrega un modo de entrega de creditos para participantes con check-in. Administracion importa un archivo `.xlsx`, `.csv` o `.txt` cuya primera fila declara las columnas `correo`, `apicredit` y `codexcredit` (con variantes tolerantes de encabezado). El cliente incluye un lector propio de XLSX sin dependencias (ZIP + DecompressionStream), valida cada fila (correo, codigo ASCII de 4 a 120 caracteres, URL HTTPS de hasta 500) y muestra conteos, filas con error y vista previa antes de confirmar.
+
+El envio usa la plantilla fija en espanol `buildCreditBroadcastEmail`: codigo de creditos de la API resaltado, pasos de canje en `platform.openai.com` (Settings > Organization > Billing > Promotions) con boton a la pagina de promociones, y boton personal "Reclamar creditos de Codex" hacia la URL del destinatario. El servidor valida con `creditBroadcastSchema` (Zod, correos unicos), crea la campana con la RPC idempotente `create_credit_broadcast_campaign` (kind `credit`, misma numeracion de lotes e idempotencia `broadcast/v2`) y reutiliza el despacho, la reanudacion y la clasificacion de errores existentes. La migracion `20260721060218` esta aplicada en Supabase produccion y los tipos generados estan reconciliados; typecheck, 170 pruebas, `npm audit` y build terminaron limpios. Falta desplegar en Vercel y realizar un envio real supervisado.
+
 La verificacion historica de acceso y difusion se realizo sobre `dpl_DiyDP28P8aWqXPwYcet5y66WLPar`, construido desde `main` en `fef92a7`, entonces `READY` sobre `https://oaibuildathon.vercel.app` y con exactamente 12 Functions. Los guards reales devolvieron `401` en `/api/auth/me` y `/api/admin/broadcasts`, `405` para `GET /api/auth/password-recovery` y `404` en acciones dinamicas desconocidas. Los dispatchers usan el parser estandar `URL`; tras invocarlos, Vercel no registro errores ni warnings propios de ese deployment. El deployment vigente verificado es el documentado en la seccion de analisis IA.
 
 La verificacion de navegador cubrio el formulario de recuperacion, la ruta de cambio de contrasena, los guards de administracion y las vistas autenticadas de Personas y Difusion con una sesion y respuestas ficticias interceptadas. Se comprobaron la clave manual/opcional, la exclusion de administradores, las confirmaciones masivas, la carga TXT/CSV, deduplicacion, vista previa, CTA, confirmacion y estado deshabilitado previo al envio. No se envio ningun correo, no se activo ninguna accion y no se uso una cuenta real en esa comprobacion.
@@ -201,6 +207,7 @@ El dispatcher de jurado agrupa `/api/judge/dashboard` y `/api/judge/submission-a
 10. `20260714230812_harden_broadcast_retry_and_idempotency.sql`: persiste clasificacion e idempotencia por lote y agrega reanudacion atomica para campanas recuperables.
 11. `20260714230821_harden_staff_access_and_password_recovery.sql`: preserva el cambio obligatorio durante la activacion y hace atomica la cuota de recuperacion por correo/IP.
 12. `20260715051406_add_submission_ai_analysis.sql`: outbox de analisis por revision final, hash/cooldown/cuota de costo, trigger y backfill, constraints e indices, RLS/grants service-only y claim atomico con lease/token cercado.
+13. `20260721060218_add_credit_broadcast_delivery.sql`: agrega `broadcast_campaigns.kind` (`message`/`credit`), columnas acotadas `api_credit_code` y `codex_credit_url` por destinatario y la RPC idempotente `create_credit_broadcast_campaign` con grants exclusivos de `service_role`. Aplicada en Supabase produccion via MCP y reconciliada con el historial local.
 
 No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1 migration new nombre_descriptivo` y se reconcilia con el historial remoto.
 
@@ -213,7 +220,7 @@ No se editan migraciones aplicadas. Cada cambio futuro usa `npx supabase@2.109.1
 - Los datos personales no se publican en la vitrina.
 - La creacion de staff y las acciones de `/api/admin/manage` dejan auditoria. El registro manual que reutiliza `/api/registrations` todavia no crea una entrada de auditoria administrativa.
 - Las claves temporales no se persisten ni aparecen en respuestas o auditoria; cada re-notificacion genera una nueva.
-- Recuperacion y difusion usan contenido fijo o texto escapado, remitente de servidor y CTA internas; el navegador no puede elegir HTML, remitente o URL.
+- Recuperacion y difusion usan contenido fijo o texto escapado, remitente de servidor y CTA internas; el navegador no puede elegir HTML, remitente o URL. La entrega de creditos es la unica excepcion acotada: administracion importa por archivo una URL HTTPS de Codex por destinatario, validada en cliente, Zod y un check SQL, y siempre renderizada como texto escapado dentro de la plantilla fija.
 
 El analisis desplegado conserva `OPENAI_API_KEY`, el `GITHUB_TOKEN` opcional y `CRON_SECRET` exclusivamente en servidor; OpenAI y Cron estan configurados como Sensitive en Production y el secreto del cron fue rotado. El modelo configurable uso `gpt-5.5` en la ejecucion verificada; el contenido externo se delimita y no puede dar instrucciones a los agentes; el codigo del equipo nunca se ejecuta; y la autorizacion del detalle vuelve a comprobar rol/asignacion en servidor.
 

@@ -29,6 +29,7 @@ function campaign(overrides: Partial<Tables<'broadcast_campaigns'>> = {}): Table
     subject: 'Informacion para participantes',
     message_text: 'Completa el registro de tu equipo.',
     cta_key: 'registration',
+    kind: 'message',
     status: 'processing',
     dispatch_version: 1,
     recipient_count: 3,
@@ -50,6 +51,8 @@ function recipient(
     id: `50000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
     campaign_id: '10000000-0000-4000-8000-000000000001',
     email: `persona${index}@example.com`,
+    api_credit_code: null,
+    codex_credit_url: null,
     batch_number: 0,
     batch_position: index,
     status: 'processing',
@@ -340,6 +343,71 @@ describe('processBroadcastCampaign', () => {
     })
     expect(repository.recipients[1]?.status).toBe('sent')
     expect(result?.status).toBe('completed')
+  })
+
+  it('envia la plantilla de creditos con el codigo y el enlace de cada destinatario', async () => {
+    const creditCampaign = campaign({
+      kind: 'credit',
+      cta_key: 'none',
+      recipient_count: 2,
+      subject: 'Tus creditos de OpenAI',
+      message_text: 'Gracias por completar tu check-in.',
+    })
+    const creditRecipients = [
+      recipient(0, { api_credit_code: 'PROMO-UNO-0001', codex_credit_url: 'https://chatgpt.com/codex/claim/uno' }),
+      recipient(1, { api_credit_code: 'PROMO-DOS-0002', codex_credit_url: 'https://chatgpt.com/codex/claim/dos' }),
+    ]
+    const repository = new FakeBroadcastRepository(creditCampaign, creditRecipients)
+    const htmlBodies: string[] = []
+    const transport: BroadcastTransport = {
+      send: async (messages) => {
+        htmlBodies.push(...messages.map((message) => message.html))
+        return messages.map((message, index) => ({
+          ok: true,
+          email: message.to,
+          providerId: `provider-${index}`,
+          batchIndex: message.batchNumber,
+          idempotencyKey: message.idempotencyKey,
+        }))
+      },
+    }
+
+    const result = await processBroadcastCampaign(
+      creditCampaign.id,
+      '30000000-0000-4000-8000-000000000001',
+      dependencies(repository, transport, []),
+    )
+
+    expect(result?.status).toBe('completed')
+    expect(htmlBodies[0]).toContain('PROMO-UNO-0001')
+    expect(htmlBodies[0]).toContain('https://chatgpt.com/codex/claim/uno')
+    expect(htmlBodies[0]).not.toContain('PROMO-DOS-0002')
+    expect(htmlBodies[1]).toContain('PROMO-DOS-0002')
+    expect(htmlBodies[1]).toContain('https://chatgpt.com/codex/claim/dos')
+  })
+
+  it('marca la campana de creditos como fallida si un destinatario no tiene codigo', async () => {
+    const creditCampaign = campaign({ kind: 'credit', cta_key: 'none', recipient_count: 1 })
+    const repository = new FakeBroadcastRepository(creditCampaign, [
+      recipient(0, { api_credit_code: null, codex_credit_url: 'https://chatgpt.com/codex/claim/uno' }),
+    ])
+    let transportCalls = 0
+    const transport: BroadcastTransport = {
+      send: async () => {
+        transportCalls += 1
+        return []
+      },
+    }
+
+    const result = await processBroadcastCampaign(
+      creditCampaign.id,
+      '30000000-0000-4000-8000-000000000001',
+      dependencies(repository, transport, []),
+    )
+
+    expect(transportCalls).toBe(0)
+    expect(result?.status).toBe('failed')
+    expect(repository.recipients[0]?.last_error_code).toBe('processing_error')
   })
 
   it('separa errores transitorios de fallos permanentes', () => {

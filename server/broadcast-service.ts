@@ -5,7 +5,9 @@ import { getServerSupabase } from './supabase.js'
 import {
   ResendBroadcastEmailTransport,
   buildBroadcastEmail,
+  buildCreditBroadcastEmail,
   type BroadcastDeliveryMessage,
+  type BroadcastEmailMessage,
   type BroadcastRecipientDeliveryResult,
 } from './broadcast-email.js'
 import type {
@@ -68,6 +70,8 @@ function recipientInsertValues(
     id: recipient.id,
     campaign_id: recipient.campaign_id,
     email: recipient.email,
+    api_credit_code: recipient.api_credit_code,
+    codex_credit_url: recipient.codex_credit_url,
     batch_number: recipient.batch_number,
     batch_position: recipient.batch_position,
     status: recipient.status,
@@ -260,13 +264,31 @@ export async function processBroadcastCampaign(
     )
   } else {
     try {
+      const buildRecipientEmail = (recipient: Tables<'broadcast_recipients'>): BroadcastEmailMessage => {
+        switch (campaign.kind) {
+          case 'credit':
+            return buildCreditBroadcastEmail({
+              to: recipient.email,
+              subject: campaign.subject,
+              message: campaign.message_text,
+              apiCreditCode: recipient.api_credit_code ?? '',
+              codexCreditUrl: recipient.codex_credit_url ?? '',
+            }, environment)
+          case 'message':
+            return buildBroadcastEmail({
+              to: recipient.email,
+              subject: campaign.subject,
+              message: campaign.message_text,
+              cta: campaign.cta_key,
+            }, environment)
+          default: {
+            const exhaustiveCheck: never = campaign.kind
+            return exhaustiveCheck
+          }
+        }
+      }
       const messages: BroadcastDeliveryMessage[] = deliveryRecipients.map((recipient) => ({
-        ...buildBroadcastEmail({
-          to: recipient.email,
-          subject: campaign.subject,
-          message: campaign.message_text,
-          cta: campaign.cta_key,
-        }, environment),
+        ...buildRecipientEmail(recipient),
         batchNumber: recipient.batch_number,
         idempotencyKey: recipient.idempotency_key,
       }))

@@ -469,6 +469,9 @@
 .broadcast-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .broadcast-section-heading h2 { margin: 0; font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 2.5rem); letter-spacing: -0.045em; }
 .broadcast-section-heading > p { max-width: 58ch; margin: 0; color: oklch(0.46 0.025 250); font-size: 0.78rem; line-height: 1.55; text-align: right; }
+.broadcast-mode-switch { display: flex; flex-wrap: wrap; gap: 10px; }
+.broadcast-recipient-warning ul { margin: 6px 0 0; padding-left: 18px; }
+.broadcast-recipient-warning p { margin: 0; }
 .broadcast-form { display: grid; gap: 24px; padding: clamp(22px, 4vw, 36px); }
 .broadcast-layout { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(310px, 0.92fr); align-items: start; gap: clamp(24px, 4vw, 44px); }
 .broadcast-fields { display: grid; gap: 18px; min-width: 0; }

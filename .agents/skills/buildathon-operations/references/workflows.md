@@ -24,6 +24,7 @@ This reference describes deployed behavior. Verify `docs/IMPLEMENTATION_STATUS.m
 7. Monitor private weighted results and completed evaluations. `results_public` has no public consumer today.
 8. From Personas, notify one active mentor/judge, only pending profiles, or all active mentors/judges after explicit confirmation. Bulk actions never include administrators and the UI does not delete or deactivate accounts.
 9. From Difusion, paste or import TXT/CSV recipients, review deduplication and preview, choose an internal CTA, confirm the draft and then start or safely resume the campaign.
+10. Difusion also has a credit-delivery mode: import an `.xlsx`/`.csv`/`.txt` file whose header row declares `correo`, `apicredit` and `codexcredit`. Each recipient gets a fixed Spanish template with their OpenAI API promo code, the redemption steps for platform.openai.com (Settings > Organization > Billing > Promotions) and a personal button linking to their Codex credit claim URL. Rows are validated client-side and with Zod; the campaign persists per-recipient code/URL in `broadcast_recipients` and reuses the durable dispatch, resume and retry machinery (`kind = 'credit'`).
 
 ## Internal account access and recovery
 

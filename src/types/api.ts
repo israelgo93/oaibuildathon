@@ -304,6 +304,21 @@ export interface CreateBroadcastInput {
   recipients: string
 }
 
+export interface CreditBroadcastRecipientInput {
+  email: string
+  apiCredit: string
+  codexCredit: string
+}
+
+export interface CreateCreditBroadcastInput {
+  kind: 'credit'
+  requestId: string
+  eventId: string
+  subject: string
+  message: string
+  recipients: CreditBroadcastRecipientInput[]
+}
+
 export interface CreateBroadcastResult {
   campaignId: string
   recipientCount: number

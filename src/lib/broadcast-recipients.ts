@@ -137,6 +137,18 @@ function parseDelimitedRows(source: string, delimiter: ',' | ';' | '\t'): string
   return rows
 }
 
+export function parseDelimitedTable(source: string): string[][] {
+  const normalized = source.replace(/^\uFEFF/, '')
+  const delimiter = delimiterFor(normalized)
+  if (!delimiter) {
+    return normalized
+      .split(/\r?\n/)
+      .map((line) => [line.trim().replace(/^"|"$/g, '')])
+      .filter((row) => row[0].length > 0)
+  }
+  return parseDelimitedRows(normalized, delimiter)
+}
+
 function recipientEntries(source: string): string[] {
   const delimiter = delimiterFor(source)
   if (!delimiter) return source.split(/[;,\t\r\n]+/).map((entry) => entry.trim().replace(/^"|"$/g, ''))

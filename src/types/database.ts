@@ -8,6 +8,7 @@ export type AccessEmailStatus = 'not_sent' | 'sending' | 'sent' | 'failed'
 export type BroadcastCtaKey = 'none' | 'landing' | 'registration' | 'team_portal' | 'staff_login'
 export type BroadcastCampaignStatus = 'queued' | 'processing' | 'completed' | 'partial' | 'failed'
 export type BroadcastRecipientStatus = 'pending' | 'processing' | 'sent' | 'failed'
+export type BroadcastCampaignKind = 'message' | 'credit'
 export type SubmissionAiAnalysisStatus = 'queued' | 'running' | 'completed' | 'failed' | 'superseded'
 export type SubmissionAiAnalysisRequestedReason = 'submission' | 'resubmission' | 'backfill' | 'manual'
 
@@ -69,6 +70,7 @@ export type BroadcastCampaignRow = {
   subject: string
   message_text: string
   cta_key: BroadcastCtaKey
+  kind: BroadcastCampaignKind
   status: BroadcastCampaignStatus
   dispatch_version: number
   recipient_count: number
@@ -84,6 +86,8 @@ export type BroadcastRecipientRow = {
   id: string
   campaign_id: string
   email: string
+  api_credit_code: string | null
+  codex_credit_url: string | null
   batch_number: number
   batch_position: number
   status: BroadcastRecipientStatus
@@ -356,6 +360,17 @@ export interface Database {
       }
       claim_broadcast_campaign: {
         Args: { p_campaign_id: string }
+        Returns: BroadcastCampaignRow
+      }
+      create_credit_broadcast_campaign: {
+        Args: {
+          p_event_id: string
+          p_created_by: string
+          p_request_id: string
+          p_subject: string
+          p_message_text: string
+          p_recipients: Json
+        }
         Returns: BroadcastCampaignRow
       }
       claim_submission_ai_analysis: {

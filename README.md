@@ -26,6 +26,8 @@ Produccion incorpora credenciales temporales para staff, cambio obligatorio, rec
 
 La difusion acepta hasta 500 correos unicos desde texto, TXT o CSV con columna `email` o `correo`, muestra una vista previa y exige confirmacion. El servidor limita el contenido a texto plano y CTA internas, congela la campana en Supabase y usa lotes Resend de hasta 100 destinatarios con idempotencia estable. Una accion administrativa recupera campanas en cola, interrumpidas o parciales y solo reintenta errores transitorios. Las migraciones, API y vistas estan desplegadas y verificadas en el alias canonico; la comprobacion uso datos ficticios y no envio mensajes ni cambio claves reales.
 
+La misma seccion incluye un modo de entrega de creditos: administracion importa un archivo `.xlsx`, `.csv` o `.txt` cuya primera fila contiene las columnas `correo`, `apicredit` y `codexcredit`. Cada destinatario recibe una plantilla fija en espanol con su codigo de creditos de la API de OpenAI, los pasos para canjearlo en `platform.openai.com` (Settings > Organization > Billing > Promotions) y un boton con su enlace personal para reclamar los creditos de Codex. El cliente valida correo, codigo y URL HTTPS por fila antes de enviar; el servidor revalida con Zod, exige unicidad de correos y persiste los datos en la misma cola durable de difusion, por lo que la reanudacion y los reintentos funcionan igual que en el mensaje general.
+
 ## Analisis IA de entregas desplegado
 
 Produccion incorpora un analisis automatico y no vinculante para cada nueva revision final `submitted`. Cuatro especialistas del OpenAI Agents SDK revisan en paralelo la alineacion con el reto, el producto desplegado, el codigo/arquitectura y la integracion de OpenAI; un quinto agente sintetiza un informe estructurado, limitaciones, preguntas sugeridas y una posible ponderacion basada en la rubrica activa. Esa ponderacion es solo una referencia: no completa el formulario del jurado, no escribe `evaluations` ni sustituye la revision humana.
@@ -175,6 +177,7 @@ El historial aplicado es:
 10. `supabase/migrations/20260714230812_harden_broadcast_retry_and_idempotency.sql`: agrega clasificacion de errores, claves idempotentes persistidas y reanudacion atomica de campanas interrumpidas.
 11. `supabase/migrations/20260714230821_harden_staff_access_and_password_recovery.sql`: preserva el cambio obligatorio durante la activacion y reclama de forma atomica la cuota de recuperacion por correo e IP.
 12. `supabase/migrations/20260715051406_add_submission_ai_analysis.sql`: crea el outbox por revision, hash de contenido, cuota automatica acotada, triggers de encolado/invalidez, backfill de entregas finales, indices, RLS, grants exclusivos de servidor y el claim atomico con lease/token de ejecucion.
+13. `supabase/migrations/20260721060218_add_credit_broadcast_delivery.sql`: agrega el tipo de campana (`message`/`credit`), columnas acotadas de codigo de API y URL de Codex por destinatario, y la RPC idempotente `create_credit_broadcast_campaign` exclusiva de servidor.
 
 No edites migraciones aplicadas; crea una nueva con:
 
